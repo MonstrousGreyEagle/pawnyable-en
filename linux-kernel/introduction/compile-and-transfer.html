@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0" name="viewport"/>
+<meta content="https://pawnyable.cafe/linux-kernel/introduction/compile-and-transfer.html" name="og:url"/>
+<meta content="Compiling and forwarding exploits - PAWNYABLE!" name="og:title"/>
+<meta content="https://pawnyable.cafe/pawnyable.ogp.png" name="og:image"/>
+<meta content="fluffy pwn world" name="og:description"/>
+<meta content="website" name="og:type"/>
+<meta content="PAWNYABLE!" name="og:site_name"/>
+<meta content="ie=edge" http-equiv="X-UA-Compatible"/>
+<meta content="ptr-yudai" name="author"/>
+<meta content="pawnyable" name="subtitle"/>
+<meta content="Let's learn pwnable with cute animals." name="description"/>
+<meta content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable" name="keywords"/>
+<title>Compiling and forwarding exploits | PAWNYABLE!</title>
+<link href="/favicon.png" rel="icon"/>
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+<!-- stylesheets list from _config.yml -->
+<link href="/css/style.css" rel="stylesheet"/>
+<!-- scripts list from _config.yml -->
+<script src="/js/frame.js"></script>
+<style type="text/css">
+.spoiler {
+  display: inline-flex;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta content="Hexo 5.4.2" name="generator"/></head>
+<body>
+<div class="mask-border">
+</div>
+<div class="wrapper">
+<div class="header">
+<div class="flex-container">
+<div class="header-inner">
+<div class="site-brand-container">
+<a href="/">PAWNYABLE</a>
+</div>
+<div class="menu-btn" id="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+<nav class="site-nav">
+<ul class="menu-list">
+<li class="menu-item">
+<a href="/practice/">Practice</a>
+</li>
+<li class="menu-item">
+<a href="/about/">About</a>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="main">
+<div class="flex-container">
+<article id="post">
+<div class="post-head">
+<div class="post-info">
+<div class="post-title">Compiling and forwarding exploits</div>
+</div>
+<div class="h-line-primary"></div>
+<div class="pagination">
+<div class="pagination-bk"><a href="security.html">Previous page</a></div>
+<div class="pagination-index"><a href="../index.html">Go to table of contents</a></div>
+<div class="pagination-fd"><a href="../LK01/welcome-to-holstein.html">Next page</a></div>
+</div>
+<div class="column" title="table of contents">
+<ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#qemu%E4%B8%8A%E3%81%A7%E3%81%AE%E5%AE%9F%E8%A1%8C"><span class="toc-text">Execution on qemu</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E3%83%AA%E3%83%A2%E3%83%BC%E3%83%88%E3%83%9E%E3%82%B7%E3%83%B3%E3%81%A7%E3%81%AE%E5%AE%9F%E8%A1%8C%EF%BC%9Amusl-gcc%E3%81%AE%E5%88%A9%E7%94%A8"><span class="toc-text">Executing on a remote machine: using musl-gcc</span></a></li></ol>
+</div>
+</div>
+<div class="post-content">
+<p>You now have all the knowledge you need to start using Kernel Exploit, including how to boot the kernel, debug it, and security. From here, we will learn how to actually write an exploit and how to run the written exploit on qemu.</p>
+<h2 id="qemu上での実行">Execution on qemu</h2>
+<p>Writing, building, and running an exploit on qemu is a pain because you have to start over every time the kernel crashes. Therefore, you need to build an exploit written in C locally and then send it to qemu.<br/>It's tedious to enter this flow every time, so it's a good idea to prepare it as a template using a shell script. For example,<code>transfer.sh</code>I will try to prepare it.</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br/><span class="line">2</span><br/><span class="line">3</span><br/><span class="line">4</span><br/><span class="line">5</span><br/><span class="line">6</span><br/><span class="line">7</span><br/><span class="line">8</span><br/><span class="line">9</span><br/><span class="line">10</span><br/><span class="line">11</span><br/><span class="line">12</span><br/><span class="line">13</span><br/><span class="line">14</span><br/><span class="line">15</span><br/><span class="line">16</span><br/><span class="line">17</span><br/><span class="line">18</span><br/><span class="line">19</span><br/></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/bin/sh</span></span><br/><span class="line">gcc exploit.c -o exploit</span><br/><span class="line"><span class="built_in">mv</span> exploit root</span><br/><span class="line"><span class="built_in">cd</span> root; find . -print0 | cpio -o --null --format=newc &gt; ../debugfs.cpio</span><br/><span class="line"><span class="built_in">cd</span> ../</span><br/><span class="line"></span><br/><span class="line">qemu-system-x86_64 \</span><br/><span class="line">    -m 64M \</span><br/><span class="line">    -nographic \</span><br/><span class="line">    -kernel bzImage \</span><br/><span class="line">    -append <span class="string">"console=ttyS0 loglevel=3 oops=panic panic=-1 nopti nokaslr"</span> \</span><br/><span class="line">    -no-reboot \</span><br/><span class="line">    -cpu qemu64 \</span><br/><span class="line">    -gdb tcp::12345 \</span><br/><span class="line">    -smp 1 \</span><br/><span class="line">    -monitor /dev/null \</span><br/><span class="line">    -initrd debugfs.cpio \</span><br/><span class="line">    -net nic,model=virtio \</span><br/><span class="line">    -net user</span><br/></pre></td></tr></table></figure>
+<p>I don't need to explain it, but just use GCC<code>exploit.c</code>I'm just compiling and adding it to cpio and starting qemu. original<code>rootfs.cpio</code>so as not to break<code>debugfs.cpio</code>I'm using a disk named , but you can change it if you like.<br/>Also, when creating cpio, the file permissions will change unless you have root privileges, so<code>transfer.sh</code>Please be careful to run with root privileges.</p>
+<p>Now,<code>exploit.c</code>Put the following code in<code>transfer.sh</code>Let's run it.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br/><span class="line">2</span><br/><span class="line">3</span><br/><span class="line">4</span><br/><span class="line">5</span><br/><span class="line">6</span><br/></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br/><span class="line"></span><br/><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span> {</span><br/><span class="line">  <span class="built_in">puts</span>(<span class="string">"Hello, World!"</span>);</span><br/><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br/><span class="line">}</span><br/></pre></td></tr></table></figure>
+<p>Then, the following error will appear: Why?</p>
+<center>
+<img alt="Exploit compiled with GCC does not work" src="img/gcc_error.png" style="width:320px;"/>
+</center>
+<p>Actually, the image distributed this time uses a compact library called uClibc instead of normal libc. Of course, the environment in which you compiled exploit uses GCC, that is, libc, so dynamic linking fails and exploit does not work.<br/>Therefore, when running exploit on qemu, be careful to statically link it.</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br/></pre></td><td class="code"><pre><span class="line">gcc exploit.c -o exploit -static</span><br/></pre></td></tr></table></figure>
+<p>If you change it like this and run it, the program should work.</p>
+<center>
+<img alt="Exploit works if you link statically" src="img/static_works.png" style="width:320px;"/>
+</center>
+<h2 id="リモートマシンでの実行：musl-gccの利用">Executing on a remote machine: using musl-gcc</h2>
+<p>Up to this point, we have successfully executed exploit on qemu. The environment distributed this time is configured to allow network connection, so if you want to run it remotely, you can transfer the exploit using the wget command on qemu.<br/>However, in some small environments such as CTF, the network is not available. In such cases, you will need to transfer the binaries remotely using the commands available in busybox. Base64 is generally used, but files built with GCC can range from several hundred KB to several tens of MB, so it takes a very long time to transfer. The reason for the large size is that the functions of the external library (libc) are statically linked.<br/>If you want to reduce the size with GCC, you need to avoid using libc and define read, write, etc. yourself using system calls (inline assembly). Of course this is very difficult.<br/>Therefore, many CTFers use a C compiler called musl-gcc for the purpose of kernel exploitation. Please download from the link below, build it and complete the installation.</p>
+<p><a href="https://www.musl-libc.org/" rel="noopener" target="_blank">https://www.musl-libc.org/</a></p>
+<p>Once the installation is complete, do the following:<code>transfer.sh</code>Let's rewrite the compilation part. Please specify the directory where you installed musl-gcc.</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br/></pre></td><td class="code"><pre><span class="line">/usr/local/musl/bin/musl-gcc exploit.c -o exploit -static</span><br/></pre></td></tr></table></figure>
+<p>In the author's environment, the Hello, World program mentioned earlier was 851KB for gcc and 18KB for musl-gcc. If you want to make it even smaller, you can remove debug symbols using strip, etc.</p>
+<div class="balloon_l">
+<div class="faceicon"><img alt="Wolf-kun" src="../img/wolf_atamawaru.png"/></div>
+<p class="says">Some header files (Linux kernel type) are not in musl-gcc, so you need to set the include path or compile with gcc. In such cases, if you build it via assembly once, you can use gcc functions and reduce the file size.<br/>
+<code>
+    $ gcc -S sample.c -o sample.S<br/>
+    $ musl-gcc sample.S -o sample.elf
+    </code>
+</p>
+</div>
+<p>Once this is complete, let's write a script to transfer the binary to the remote (via nc) using base64. This uploader will be used every time you use CTF, so we recommend that you create your own template.</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br/><span class="line">2</span><br/><span class="line">3</span><br/><span class="line">4</span><br/><span class="line">5</span><br/><span class="line">6</span><br/><span class="line">7</span><br/><span class="line">8</span><br/><span class="line">9</span><br/><span class="line">10</span><br/><span class="line">11</span><br/><span class="line">12</span><br/><span class="line">13</span><br/><span class="line">14</span><br/><span class="line">15</span><br/><span class="line">16</span><br/><span class="line">17</span><br/><span class="line">18</span><br/><span class="line">19</span><br/><span class="line">20</span><br/><span class="line">21</span><br/><span class="line">22</span><br/><span class="line">23</span><br/><span class="line">24</span><br/><span class="line">25</span><br/><span class="line">26</span><br/></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> ptrlib <span class="keyword">import</span> *</span><br/><span class="line"><span class="keyword">import</span> time</span><br/><span class="line"><span class="keyword">import</span> base64</span><br/><span class="line"><span class="keyword">import</span> os</span><br/><span class="line"></span><br/><span class="line"><span class="keyword">def</span> <span class="title function_">run</span>(<span class="params">cmd</span>):</span><br/><span class="line">    sock.sendlineafter(<span class="string">"$ "</span>, cmd)</span><br/><span class="line">    sock.recvline()</span><br/><span class="line"></span><br/><span class="line"><span class="keyword">with</span> <span class="built_in">open</span>(<span class="string">"./root/exploit"</span>, <span class="string">"rb"</span>) <span class="keyword">as</span> f:</span><br/><span class="line">    payload = bytes2str(base64.b64encode(f.read()))</span><br/><span class="line"></span><br/><span class="line"><span class="comment">#sock = Socket("HOST", PORT) # remote</span></span><br/><span class="line">sock = Process(<span class="string">"./run.sh"</span>)</span><br/><span class="line"></span><br/><span class="line">run(<span class="string">'cd /tmp'</span>)</span><br/><span class="line"></span><br/><span class="line">logger.info(<span class="string">"Uploading..."</span>)</span><br/><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">0</span>, <span class="built_in">len</span>(payload), <span class="number">512</span>):</span><br/><span class="line">    <span class="built_in">print</span>(<span class="string">f"Uploading... <span class="subst">{i:x}</span> / <span class="subst">{<span class="built_in">len</span>(payload):x}</span>"</span>)</span><br/><span class="line">    run(<span class="string">'echo "{}" &gt;&gt; b64exp'</span>.<span class="built_in">format</span>(payload[i:i+<span class="number">512</span>]))</span><br/><span class="line">run(<span class="string">'base64 -d b64exp &gt; exploit'</span>)</span><br/><span class="line">run(<span class="string">'rm b64exp'</span>)</span><br/><span class="line">run(<span class="string">'chmod +x exploit'</span>)</span><br/><span class="line"></span><br/><span class="line">sock.interactive()</span><br/></pre></td></tr></table></figure>
+<p>After a while, the upload should be completed as shown below.</p>
+<center>
+<img alt="Execution result of upload.py" src="img/upload_script.png" style="width:520px;"/>
+</center>
+<p>On this site, you can just try it out on your own, so there is no need to upload it, but please remember this when practicing with CTF etc.</p>
+</div>
+<div style="margin-top: 1em">
+<div class="h-line-primary"></div>
+<div class="pagination">
+<div class="pagination-bk"><a href="security.html">Previous page</a></div>
+<div class="pagination-index"><a href="../index.html">Go to table of contents</a></div>
+<div class="pagination-fd"><a href="../LK01/welcome-to-holstein.html">Next page</a></div>
+</div>
+</div>
+<script>
+    window.onload = detectors();
+</script>
+</article>
+</div>
+</div>
+<div class="footer">
+<div class="flex-container">
+<div class="footer-text">
+            
+                © 2023 ptr-yudai 🐈
+                <br/>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

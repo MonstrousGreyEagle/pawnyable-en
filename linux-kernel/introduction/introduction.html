@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0" name="viewport"/>
+<meta content="https://pawnyable.cafe/linux-kernel/introduction/introduction.html" name="og:url"/>
+<meta content="Introduction to kernel exploit - PAWNYABLE!" name="og:title"/>
+<meta content="https://pawnyable.cafe/pawnyable.ogp.png" name="og:image"/>
+<meta content="fluffy pwn world" name="og:description"/>
+<meta content="website" name="og:type"/>
+<meta content="PAWNYABLE!" name="og:site_name"/>
+<meta content="ie=edge" http-equiv="X-UA-Compatible"/>
+<meta content="ptr-yudai" name="author"/>
+<meta content="pawnyable" name="subtitle"/>
+<meta content="Let's learn pwnable with cute animals." name="description"/>
+<meta content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable" name="keywords"/>
+<title>Introduction to kernel exploitation | PAWNYABLE!</title>
+<link href="/favicon.png" rel="icon"/>
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+<!-- stylesheets list from _config.yml -->
+<link href="/css/style.css" rel="stylesheet"/>
+<!-- scripts list from _config.yml -->
+<script src="/js/frame.js"></script>
+<style type="text/css">
+.spoiler {
+  display: inline-flex;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta content="Hexo 5.4.2" name="generator"/></head>
+<body>
+<div class="mask-border">
+</div>
+<div class="wrapper">
+<div class="header">
+<div class="flex-container">
+<div class="header-inner">
+<div class="site-brand-container">
+<a href="/">PAWNYABLE</a>
+</div>
+<div class="menu-btn" id="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+<nav class="site-nav">
+<ul class="menu-list">
+<li class="menu-item">
+<a href="/practice/">Practice</a>
+</li>
+<li class="menu-item">
+<a href="/about/">About</a>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="main">
+<div class="flex-container">
+<article id="post">
+<div class="post-head">
+<div class="post-info">
+<div class="post-title">Introduction to kernel exploit</div>
+</div>
+<div class="h-line-primary"></div>
+<div class="pagination">
+<div class="pagination-bk"><span></span></div>
+<div class="pagination-index"><a href="../index.html">▲To Table of Contents</a></div>
+<div class="pagination-fd"><a href="debugging.html">Go to the next page</a></div>
+</div>
+<div class="column" title="Table of Contents">
+<ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E3%82%AB%E3%83%BC%E3%83%8D%E3%83%ABexploit%E3%81%AE%E7%89%B9%E5%BE%B4"><span class="toc-text">Characteristics of kernel exploitation</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%94%BB%E6%92%83%E5%AF%BE%E8%B1%A1"><span class="toc-text">Target of attack</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%94%BB%E6%92%83%E6%96%B9%E6%B3%95"><span class="toc-text">Attack method</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E3%83%AA%E3%82%BD%E3%83%BC%E3%82%B9%E3%81%AE%E5%85%B1%E6%9C%89"><span class="toc-text">Sharing resources</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E3%83%92%E3%83%BC%E3%83%97%E9%A0%98%E5%9F%9F%E3%81%AE%E5%85%B1%E6%9C%89"><span class="toc-text">Shared heap space</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#qemu%E3%81%AE%E5%88%A9%E7%94%A8"><span class="toc-text">using qemu</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E3%83%87%E3%82%A3%E3%82%B9%E3%82%AF%E3%82%A4%E3%83%A1%E3%83%BC%E3%82%B8"><span class="toc-text">Disk Image</span></a></li></ol>
+</div>
+</div>
+<div class="post-content">
+<p>Many people will say, "I studied pwn in Userland all the way, but it seems difficult from the kernel and I can't help it." However, in fact, with kernel exploit, it is very easy to attack in some cases.<br/>This section explains the differences between userland exploitation and kernel exploitation, environment construction, etc.</p>
+<h2 id="カーネルexploitの特徴">Kernel exploit features</h2>
+<p>First of all, let's understand the characteristics of vulnerabilities in kernel space compared to userland.</p>
+<h3 id="攻撃対象">Attack target</h3>
+<p>The biggest difference between userland exploit and kernel exploit is in its purpose.<br/>In the userland exploit described above, we wrote exploit for the goal of "arbitrary command execution" in many cases.On the other hand, the kernel exploit generally writes exploit for "elevation of authority".Assuming that the target machine could be compromised in some way, the attacker would use the kernel exploit to gain further root privileges<sup class="footnote-ref"><a href="#fn1" id="fnref1">[1]</a></sup>. Thus, privilege escalation on the local machine<strong>LPE</strong>(Local Privilege Escalation).<br/>Of course, there are vulnerabilities that allow privilege escalation in userland, but this is because the program being attacked is running as a privileged user. In the case of kernel exploitation, there are two main targets for attack:</p>
+<ol>
+<li>Linux Kernel</li>
+<li>kernel module</li>
+</ol>
+<p>Because the code in the Linux kernel (system calls and file systems) runs with root privileges, a bug in the kernel itself can lead to LPE.<br/>The other is a vulnerability contained in kernel modules such as device drivers.Device drivers are interfaces that facilitate interaction from user space, primarily with external devices (such as printers).The device driver is also always running with root privileges<sup class="footnote-ref"><a href="#fn2" id="fnref2">[2]</a></sup>So, if there is a bug, it will lead to LPE.</p>
+<h3 id="攻撃方法">How to attack</h3>
+<p>In the case of userland exploitation, the exploit is usually done by providing input to the service being attacked. Therefore, it is common practice to write exploits in languages ​​such as Python.<br/>On the other hand, in the case of kernel exploit, the target is the OS and drivers.Since these operations are low-layer, it is mainstream to write exploit in C language and so on.Of course, you can also write in Python, but since Python rarely exists on the target machine (especially on small Linux such as CTF and experimental environment), it is likely to not work.</p>
+<p>This site also describes exploits in C language. The detailed story will appear in another section, but<a href="https://www.musl-libc.org/" rel="noopener" target="_blank">musl-gcc</a>We will use a compiler called.</p>
+<h3 id="リソースの共有">Resource Sharing</h3>
+<p>Another feature of kernel exploit is that resources are shared.<br/>In userland, there is usually one process to attack, and by exploiting that process, attacks can be made such as taking a shell. On the other hand, programs such as the Linux kernel and device drivers are shared by all processes using the OS. Anyone can use system calls at any time, and device drivers do not know who will use them and when. In other words, when writing code that runs in kernel space, you can easily introduce vulnerabilities unless you always plan for multithreading.</p>
+<div class="balloon_l">
+<div class="faceicon"><img alt="Wolf-kun" src="../img/wolf_atamawaru.png"/></div>
+<p class="says">This means that when using data that may conflict, such as global variables, you must acquire a lock.<br/>Programming in kernel space is difficult.</p>
+</div>
+<h3 id="ヒープ領域の共有">Shared heap space</h3>
+<p>In addition, there is a major feature that the heap area of the kernel is shared by all drivers and the kernel.<br/>Until now, in userland exploit, there was a heap for each program, so it was program-dependent whether it was exploitable because Heap Overflow occurred in that program.However, a single heap overflow on a device driver, for example, can contaminate the surrounding data that other device drivers or the Linux kernel have secured to the heap.</p>
+<p>From the attacker's point of view, this feature has advantages and disadvantages. The advantage is that even small vulnerabilities around the heap are very likely to lead to LPE. For example, there are many objects with function pointers in the Linux kernel, so rip can be easily retrieved using one of them. The disadvantage is that the state of the heap cannot be predicted because it is affected by all programs. If the userland program was simple, complex heap exploits (commonly known as House of XXX) were possible because the state of the heap was decisive for the input. On the other hand, the kernel does not know what data is behind the chunk where the Heap Overflow occurs or who will use that address after it is free with Use-after-Free.</p>
+<div class="balloon_l">
+<div class="faceicon"><img alt="Wolf-kun" src="../img/wolf_normal.png"/></div>
+<p class="says">So Heap Spray is important in kernel exploit.</p>
+</div>
+<p>The vulnerability itself is not much different from that of the user land. Stack Overflow and Use-after-Free can also exist in the kernel land. You can also place a stack canary on the device driver stack as a security mechanism. However, since there is also a vulnerability specific to kernel space, it will appear in a later section.</p>
+<h2 id="qemuの利用">Using qemu</h2>
+<p>When writing a Linux kernel exploit, run the kernel on the emulator for debugging. Any VM is fine, but qemu is common, so we will use qemu on this site as well.</p>
+<p>If you are a reader, please install qemu-system according to your environment.</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br/></pre></td><td class="code"><pre><span class="line"># apt install qemu-system</span><br/></pre></td></tr></table></figure>
+<h2 id="ディスクイメージ">disk image</h2>
+<p>when you start the machine with qemu, you need a disk image that will be mounted as the root directory separately from the Linux kernel.<br/>Disk images are generally created and distributed as raw binaries of file systems such as ext or in a format called cpio.<br/>If it is a file system, you can edit the files inside by mounting it with the mount command.</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br/><span class="line">2</span><br/></pre></td><td class="code"><pre><span class="line"># mkdir root</span><br/><span class="line"># mount rootfs.img root</span><br/></pre></td></tr></table></figure>
+<p>The exercises on this site use the cpio format, which is common and lightweight in CTFs.<br/>use the cpio command to extract the file as follows:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br/><span class="line">2</span><br/></pre></td><td class="code"><pre><span class="line"># mkdir root</span><br/><span class="line"># cd root; cpio -idv &lt; ../rootfs.cpio</span><br/></pre></td></tr></table></figure>
+<p>After adding or editing files, put them back together into a cpio file like this:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br/></pre></td><td class="code"><pre><span class="line"># find . -print0 | cpio -o --format=newc --null &gt; ../rootfs_updated.cpio</span><br/></pre></td></tr></table></figure>
+<p>In some cases, cpio is further compressed using gz, so in that case, please expand and recompress as appropriate.</p>
+<p>In addition, cpio also grants permission information, so when editing the file system, it is necessary to properly assign the owner of the file to root. All the above commands are executed with root privileges, so there is no problem, but if it is troublesome,<code>--owner=root</code>You can also give them an option to pack.</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br/><span class="line">2</span><br/><span class="line">3</span><br/><span class="line">4</span><br/></pre></td><td class="code"><pre><span class="line">$ mkdir root</span><br/><span class="line">$ cd root; cpio -idv &lt; ../rootfs.cpio</span><br/><span class="line">...</span><br/><span class="line">$ find . -print0 | cpio -o --format=newc --null --owner=root &gt; ../rootfs_updated.cpio</span><br/></pre></td></tr></table></figure>
+<hr/>
+<div class="column" title="example">
+<a href="../LK01/distfiles/LK01.tar.gz">Practice Question LK01</a>Download the file and do the following:<br/>
+  (1) <code>run.sh</code>Run to make sure Linux is up.<br/>(2) Ensure that the shell becomes root at startup<code>rootfs.cpio</code>Edit.(Tip: Look for a script that displays a startup message.)</div>
+<hr class="footnotes-sep"/>
+<section class="footnotes">
+<ol class="footnotes-list">
+<li class="footnote-item" id="fn1"><p>Some highly sophisticated attacks, such as SMBGhost, exploit the kernel from outside the machine by exploiting poorly implemented protocol stacks.<a class="footnote-backref" href="#fnref1">↩︎</a></p>
+</li>
+<li class="footnote-item" id="fn2"><p>File systems and character devices are typically implemented in kernel modules.<a href="https://lwn.net/Articles/796674/" rel="noopener" target="_blank">FUSE</a>PNG and .<a href="https://lwn.net/Articles/308445/" rel="noopener" target="_blank">CUSE</a>With the advent of features like this, it has become possible to implement it from user space.<a class="footnote-backref" href="#fnref2">↩︎</a></p>
+</li>
+</ol>
+</section>
+</div>
+<div style="margin-top: 1em">
+<div class="h-line-primary"></div>
+<div class="pagination">
+<div class="pagination-bk"><span></span></div>
+<div class="pagination-index"><a href="../index.html">Go to table of contents</a></div>
+<div class="pagination-fd"><a href="debugging.html">Next page</a></div>
+</div>
+</div>
+<script>
+    window.onload = detectors();
+</script>
+</article>
+</div>
+</div>
+<div class="footer">
+<div class="flex-container">
+<div class="footer-text">
+            
+                © 2023 ptr-yudai 🐈
+                <br/>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

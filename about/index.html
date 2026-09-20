@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0" name="viewport"/>
+<meta content="https://pawnyable.cafe/about/index.html" name="og:url"/>
+<meta content="About Pawnyable - PAWNYABLE!" name="og:title"/>
+<meta content="https://pawnyable.cafe/pawnyable.ogp.png" name="og:image"/>
+<meta content="fluffy pwn world" name="og:description"/>
+<meta content="website" name="og:type"/>
+<meta content="PAWNYABLE!" name="og:site_name"/>
+<meta content="ie=edge" http-equiv="X-UA-Compatible"/>
+<meta content="ptr-yudai" name="author"/>
+<meta content="pawnyable" name="subtitle"/>
+<meta content="Let's learn pwnable with cute animals." name="description"/>
+<meta content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable" name="keywords"/>
+<title>About Pawnyable | PAWNYABLE!</title>
+<link href="/favicon.png" rel="icon"/>
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+<!-- stylesheets list from _config.yml -->
+<link href="/css/style.css" rel="stylesheet"/>
+<!-- scripts list from _config.yml -->
+<script src="/js/frame.js"></script>
+<style type="text/css">
+.spoiler {
+  display: inline-flex;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta content="Hexo 5.4.2" name="generator"/></head>
+<body>
+<div class="mask-border">
+</div>
+<div class="wrapper">
+<div class="header">
+<div class="flex-container">
+<div class="header-inner">
+<div class="site-brand-container">
+<a href="/">PAWNYABLE</a>
+</div>
+<div class="menu-btn" id="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+<nav class="site-nav">
+<ul class="menu-list">
+<li class="menu-item">
+<a href="/practice/">Practice</a>
+</li>
+<li class="menu-item">
+<a href="/about/">About</a>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="main">
+<div class="flex-container">
+<article id="post">
+<div class="post-head">
+<div class="post-info">
+<div class="post-title">About Pawnyable</div>
+</div>
+<div class="h-line-primary"></div>
+<div class="column" title="table of contents">
+<ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#Pawnyable%E3%81%A8%E3%81%AF"><span class="toc-text">What is Pawnyable?</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AF%BE%E8%B1%A1%E8%AA%AD%E8%80%85"><span class="toc-text">Target audience</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9B%B4%E6%96%B0%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6"><span class="toc-text">About updates</span></a></li></ol>
+</div>
+</div>
+<div class="post-content">
+<h3 id="Pawnyableとは">What is Pawnyable?</h3>
+<p>Pawnyable is an intermediate website for learning Binary Exploitation (pwnable).<br/>I created this site because there was no site where intermediate to advanced users could learn Pwn technology in Japanese.</p>
+<h3 id="対象読者">Target audience</h3>
+<p>This course is aimed at people who have basic skills such as reading and writing assembly, knowledge of BOF and UAF, and ROP construction.</p>
+<h3 id="更新について">About updates</h3>
+<p>Part of the Kernel Exploit chapter is currently completed.<br/>We plan to implement the following chapters and functions in the future.</p>
+<ul>
+<li>high priority<ul>
+<li>Completing the Linux Kernel Chapter (Wolf)</li>
+</ul>
+</li>
+<li>medium priority<ul>
+<li>Adding example answers</li>
+<li>Addition of practice questions (Practice page)</li>
+<li>Added VM Escape chapter (Rabbit)</li>
+<li>Added Browser Exploit chapter (Panda)</li>
+<li>Addition of Windows Kernel chapter (bear)</li>
+</ul>
+</li>
+<li>low priority<ul>
+<li>Addition of Windows Userland chapter (sheep)</li>
+<li>Added Linux Userland chapter (chick)</li>
+<li>Multilingual support</li>
+</ul>
+</li>
+</ul>
+<p>The article is<a href="https://github.com/ptr-yudai/pawnyable" rel="noopener" target="_blank">GitHub</a>It is open sourced.<br/>We accept PR requests ranging from proofreading detailed sentences to adding chapters and examples.</p>
+</div>
+<div style="margin-top: 1em">
+<div class="h-line-primary"></div>
+</div>
+<script>
+    window.onload = detectors();
+</script>
+</article>
+</div>
+</div>
+<div class="footer">
+<div class="flex-container">
+<div class="footer-text">
+            
+                © 2023 ptr-yudai 🐈
+                <br/>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

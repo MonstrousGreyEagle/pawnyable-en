@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0" name="viewport"/>
+<meta content="https://pawnyable.cafe/linux-kernel/index.html" name="og:url"/>
+<meta content="Linux Kernel Exploitation - PAWNYABLE!" name="og:title"/>
+<meta content="https://pawnyable.cafe/pawnyable.ogp.png" name="og:image"/>
+<meta content="fluffy pwn world" name="og:description"/>
+<meta content="website" name="og:type"/>
+<meta content="PAWNYABLE!" name="og:site_name"/>
+<meta content="ie=edge" http-equiv="X-UA-Compatible"/>
+<meta content="ptr-yudai" name="author"/>
+<meta content="pawnyable" name="subtitle"/>
+<meta content="Let's learn pwnable with cute animals." name="description"/>
+<meta content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable" name="keywords"/>
+<title>Linux Kernel Exploitation | PAWNYABLE!</title>
+<link href="/favicon.png" rel="icon"/>
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+<!-- stylesheets list from _config.yml -->
+<link href="/css/style.css" rel="stylesheet"/>
+<!-- scripts list from _config.yml -->
+<script src="/js/frame.js"></script>
+<style type="text/css">
+.spoiler {
+  display: inline-flex;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta content="Hexo 5.4.2" name="generator"/></head>
+<body>
+<div class="mask-border">
+</div>
+<div class="wrapper">
+<div class="header">
+<div class="flex-container">
+<div class="header-inner">
+<div class="site-brand-container">
+<a href="/">PAWNYABLE</a>
+</div>
+<div class="menu-btn" id="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+<nav class="site-nav">
+<ul class="menu-list">
+<li class="menu-item">
+<a href="/practice/">Practice</a>
+</li>
+<li class="menu-item">
+<a href="/about/">About</a>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="main">
+<div class="flex-container">
+<article id="post">
+<div class="post-head">
+<div class="post-info">
+<div class="post-title">
+            
+                Linux Kernel Exploitation
+                        
+        </div>
+</div>
+<div class="h-line-primary"></div>
+</div>
+<div class="post-content">
+<div class="balloon_l">
+<div class="faceicon"><img alt="Wolf-kun" src="img/wolf_normal.png"/></div>
+<p class="says">In this chapter, we will study exploit techniques in kernel space, so-called privilege escalation.<br/>Common hardware security mechanisms and privilege escalation techniques appear in Kernel Exploit on Windows, so the knowledge in this chapter can be used not only on Linux.</p>
+</div>
+<ul>
+<li>Execution environment and debugging method<ul>
+<li><a href="introduction/introduction.html">Introduction to kernel exploitation</a></li>
+<li><a href="introduction/debugging.html">Debugging the kernel with gdb</a></li>
+<li><a href="introduction/security.html">security mechanism</a></li>
+<li><a href="introduction/compile-and-transfer.html">Compiling and forwarding exploits</a></li>
+</ul>
+</li>
+<li>Fundamentals of Kernel Exploitation (LK01: Holstein)<ul>
+<li><a href="LK01/welcome-to-holstein.html">Analyzing Holstein module and igniting vulnerabilities</a></li>
+<li><a href="LK01/stack_overflow.html">Holstein v1: Stack Overflow Exploitation</a></li>
+<li><a href="LK01/heap_overflow.html">Holstein v2: Exploiting Heap Overflow</a></li>
+<li><a href="LK01/use_after_free.html">Holstein v3: Exploiting Use-after-Free</a></li>
+<li><a href="LK01/race_condition.html">Holstein v4: Exploiting Race Condition</a></li>
+</ul>
+</li>
+<li>Attacks specific to kernel space<ul>
+<li><a href="LK02/null_ptr_deref.html">NULL Pointer Dereference (LK02: Angus)</a></li>
+<li><a href="LK03/double_fetch.html">Double Fetch (LK03: Dexter)</a></li>
+<li><a href="LK04/uffd.html">Using userfaultfd (LK04: Fleckvieh)</a></li>
+<li><a href="LK04/fuse.html">Using FUSE (LK04: Fleckvieh)</a></li>
+<li><a href="#">Exploiting vulnerable mmap implementations (LK05: Highland) (under construction)</a></li>
+</ul>
+</li>
+<li>eBPF and JIT compiler (LK06: Brahman)<ul>
+<li><a href="LK06/ebpf.html">Introduction of BPF</a></li>
+<li><a href="LK06/verifier.html">Verifier and JIT compiler</a></li>
+<li><a href="LK06/exploit.html">Exploiting eBPF bugs</a></li>
+</ul>
+</li>
+</ul>
+- UEFI Application (LK07: ???)
+- TrustZone and TEE (LK08: ???)
+- Appendix
+  - [Building the kernel using buildroot (under construction)](appendix/buildroot.html)
+<div class="column" title="Lecturer profile">
+<div style="overflow: hidden">
+<div class="faceicon" style="float: left; margin-right: 1em;">
+<img alt="Wolf-kun" src="img/wolf_suyasuya.png"/>
+</div>
+<div style="float: left;">
+<b>Wolf-kun</b><br/>There is a legend that he rose to power and became the leader of a pack of wolves.<br/>In the animal world, he is the leading expert in OS development. Basically sleeping.<br/>Likes: Cows/Linux<br/>Things I don’t like: Hyena/Windows</div>
+</div>
+</div>
+</div>
+<div style="margin-top: 1em">
+<div class="h-line-primary"></div>
+</div>
+<script>
+    window.onload = detectors();
+</script>
+</article>
+</div>
+</div>
+<div class="footer">
+<div class="flex-container">
+<div class="footer-text">
+            
+                © 2023 ptr-yudai 🐈
+                <br/>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>
