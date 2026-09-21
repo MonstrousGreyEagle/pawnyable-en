@@ -222,7 +222,7 @@ p.spoiler {
 </tr>
 </tbody>
 </table>
-<p><code>var_off</code> teeth <code>tnum</code> A structure called <code>mask</code> and <code>value</code> has.<code>mask</code> has a 1 in place of the bit whose value is unknown.<code>value</code> is a known location value.<br/>For example, a 64-bit value obtained from a BPF map initially has all bits unknown, so <code>var_off</code> teeth</p>
+<p><code>var_off</code> is a <code>tnum</code> structure containing <code>mask</code> and <code>value</code>. A 1 in <code>mask</code> marks a bit whose value is unknown, while <code>value</code> stores the known bits.<br/>For example, a 64-bit value read from a BPF map initially has every bit unknown, so its <code>var_off</code> is:</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br/></pre></td><td class="code"><pre><span class="line">(mask=0xffffffffffffffff; value=0x0)</span><br/></pre></td></tr></table></figure>
 <p>It will be. If you AND this register with 0xffff0000, you can see that the part ANDed with 0 becomes 0, so</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br/></pre></td><td class="code"><pre><span class="line">(mask=0xffff0000; value=0x0)</span><br/></pre></td></tr></table></figure>
@@ -326,7 +326,7 @@ p.spoiler {
 <ol class="footnotes-list">
 <li class="footnote-item" id="fn1"><p>There are other checks for the number of instructions.<code>check_cfg</code> Previously checked.<a class="footnote-backref" href="#fnref1">↩︎</a></p>
 </li>
-<li class="footnote-item" id="fn2"><p>ALU sanitation had a bug in its implementation, so<a href="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=10d2bb2e6b1d8c4576c56a748f697dbeb8388899" rel="noopener" target="_blank">Fixed in 2021</a>It was done.<a class="footnote-backref" href="#fnref2">↩︎</a></p>
+<li class="footnote-item" id="fn2"><p>ALU sanitation itself had an implementation bug, which was <a href="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=10d2bb2e6b1d8c4576c56a748f697dbeb8388899" rel="noopener" target="_blank">fixed in 2021</a>.<a class="footnote-backref" href="#fnref2">↩︎</a></p>
 </li>
 </ol>
 </section>
