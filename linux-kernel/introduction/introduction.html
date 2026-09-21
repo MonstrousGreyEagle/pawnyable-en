@@ -138,12 +138,12 @@ p.spoiler {
 <p>After adding or editing files, put them back together into a cpio file like this:</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br/></pre></td><td class="code"><pre><span class="line"># find . -print0 | cpio -o --format=newc --null &gt; ../rootfs_updated.cpio</span><br/></pre></td></tr></table></figure>
 <p>In some cases, cpio is further compressed using gz, so in that case, please expand and recompress as appropriate.</p>
-<p>In addition, cpio also grants permission information, so when editing the file system, it is necessary to properly assign the owner of the file to root. All the above commands are executed with root privileges, so there is no problem, but if it is troublesome,<code>--owner=root</code>You can also give them an option to pack.</p>
+<p>In addition, cpio also grants permission information, so when editing the file system, it is necessary to properly assign the owner of the file to root. All the above commands are executed with root privileges, so there is no problem, but if it is troublesome,<code>--owner=root</code> You can also give them an option to pack.</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br/><span class="line">2</span><br/><span class="line">3</span><br/><span class="line">4</span><br/></pre></td><td class="code"><pre><span class="line">$ mkdir root</span><br/><span class="line">$ cd root; cpio -idv &lt; ../rootfs.cpio</span><br/><span class="line">...</span><br/><span class="line">$ find . -print0 | cpio -o --format=newc --null --owner=root &gt; ../rootfs_updated.cpio</span><br/></pre></td></tr></table></figure>
 <hr/>
 <div class="column" title="example">
 <a href="../LK01/distfiles/LK01.tar.gz">Practice Question LK01</a>Download the file and do the following:<br/>
-  (1) <code>run.sh</code>Run to make sure Linux is up.<br/>(2) Ensure that the shell becomes root at startup<code>rootfs.cpio</code>Edit.(Tip: Look for a script that displays a startup message.)</div>
+  (1) <code>run.sh</code> Run to make sure Linux is up.<br/>(2) Ensure that the shell becomes root at startup <code>rootfs.cpio</code> Edit.(Tip: Look for a script that displays a startup message.)</div>
 <hr class="footnotes-sep"/>
 <section class="footnotes">
 <ol class="footnotes-list">
