@@ -144,7 +144,7 @@ p.spoiler {
 <p class="says">By using the sched_setaffinity function, you can limit the CPU used by threads, so even if the number of cores increases, the behavior will be the same as when there are 2 cores.</p>
 </div>
 <h2 id="権限昇格">Privilege escalation</h2>
-<p>Now, just follow the same steps as before to elevate your privileges.<br/>Data race causes Use-after-Free and Heap Spray <code>tty_struct</code> If you make the sequence of posting a function into a function, you can easily write Use-after-Free multiple times.</p>
+<p>Now, follow the same steps as before to escalate privileges.<br/>A data race causes a use-after-free, and spraying <code>tty_struct</code> objects lets us repeatedly turn the race into a usable UAF write.</p>
 <p>The sample exploit can be downloaded <a href="exploit/race-krop.c">here</a>.</p>
 <center>
 <img alt="Privilege Escalation with Race Condition" src="img/race_privesc.png" style="width:320px;"/>
