@@ -178,7 +178,7 @@ p.spoiler {
 </center>
 <p>Privilege elevation was successful!<br/>It may have been a little difficult because there was a lot of knowledge I was learning for the first time, but as I continued to deal with vulnerabilities such as heaps and contention, I realized that it was actually quite easy, as most of the vulnerabilities are the same. Look forward to it!</p>
 <h2 id="kROP">kROP</h2>
-<p>Next, let's enable SMEP. cpu argument when starting qemu <code>smep</code> Let's add .</p>
+<p>Next, let's enable SMEP. Add <code>+smep</code> to the CPU argument when starting QEMU.</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br/></pre></td><td class="code"><pre><span class="line">-cpu kvm64,+smep</span><br/></pre></td></tr></table></figure>
 <p>In this state, let's run the ret2user exploit from earlier.</p>
 <center>
@@ -186,7 +186,7 @@ p.spoiler {
 </center>
 <p>It crashed😢<br/>It says "unable to execute userspace code (SMEP?)", indicating that user space code cannot be executed due to SMEP.</p>
 <p>This is very similar to NX(DEP) in user space. You can now read and write user space data, but you can no longer execute it. Therefore, similar to avoiding NX, SMEP can be avoided by ROP. ROP in kernel space is often called kROP.</p>
-<p>For those of you who are trying Kernel Exploit, I think it is easy to convert the processing done with ret2user to ROP. Actually, there are no special points to be careful about when writing the ROP chain, but let's go through the part of searching for the ROP gadget together.<br/>First, to find the ROP gadget of the Linux kernel, you need to extract the ELF, which is the core of the kernel called vmlinux, from bzImage. This is officially<a href="https://github.com/torvalds/linux/blob/master/scripts/extract-vmlinux" rel="noopener" target="_blank">extract-vmlinux</a>A shell script is provided, so let's use it.</p>
+<p>For those of you who are trying kernel exploits, it should be easy to convert the processing done with ret2user to ROP. There are no special points to be careful about when writing the ROP chain, but let's go through how to search for ROP gadgets together.<br/>First, to find ROP gadgets in the Linux kernel, you need to extract the ELF file called <code>vmlinux</code> from <code>bzImage</code>. The Linux source tree officially provides an <a href="https://github.com/torvalds/linux/blob/master/scripts/extract-vmlinux" rel="noopener" target="_blank"><code>extract-vmlinux</code></a> shell script, so let's use it.</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br/></pre></td><td class="code"><pre><span class="line">$ extract-vmlinux bzImage &gt; vmlinux</span><br/></pre></td></tr></table></figure>
 <p>Then use your favorite tool to find your ROP gadget.</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br/><span class="line">2</span><br/><span class="line">3</span><br/><span class="line">4</span><br/></pre></td><td class="code"><pre><span class="line">$ ropr vmlinux --noisy --nosys --nojop -R '^pop rdi.+ret;'</span><br/><span class="line">...</span><br/><span class="line">0xffffffff8127bbdc: pop rdi; ret;</span><br/><span class="line">...</span><br/></pre></td></tr></table></figure>
@@ -203,7 +203,7 @@ p.spoiler {
 <p>Convert it into a ROP chain and try writing your own exploit. An example exploit can be downloaded <a href="exploit/krop.c">here</a>.</p>
 <p>If the ROP chain doesn't work for some reason and you're having trouble debugging it, it's easy to debug it by entering an appropriate address and seeing the crash message, just like with userland exploits, to see if it's running that far.</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br/><span class="line">2</span><br/><span class="line">3</span><br/><span class="line">4</span><br/></pre></td><td class="code"><pre><span class="line">*chain++ = rop_pop_rdi;</span><br/><span class="line">*chain++ = 0;</span><br/><span class="line">*chain++ = 0xdeadbeefcafebabe;</span><br/><span class="line">...</span><br/></pre></td></tr></table></figure>
-<p>At this time<strong>Always use unmapped addresses in the kernel or userland</strong>Let's do it like that. If ROP works correctly, you should be able to bypass SMEP and gain root privileges.</p>
+<p>At this time, <strong>always use unmapped addresses in the kernel or userland</strong>. If ROP works correctly, you should be able to bypass SMEP and gain root privileges.</p>
 <p>Since the ROP chain in this case operates in the kernel space stack, the exploit will actually continue to work even if SMAP is enabled. Give it a try.</p>
 <div class="column" title="Column: Can't move rax to rdi">Usually a <code>mov rdi, rax; rep movsq; ret;</code> gadget is available, allowing the result of <code>prepare_kernel_cred(NULL)</code> to be passed to <code>commit_creds</code>. Alternatively, a gadget such as <code>mov rdi, rax; call rcx;</code> can call <code>commit_creds</code> after skipping its initial <code>push rbp</code>.<br/>If you cannot find a suitable gadget, or want a shorter ROP chain, use <a href="https://elixir.bootlin.com/linux/v5.14.9/source/kernel/cred.c#L41" rel="noopener" target="_blank"><code>init_cred</code></a>. This global variable contains a root-privileged cred structure, so simply calling <code>commit_creds(init_cred)</code> elevates privileges:</div>
 <h2 id="KPTIの扱い">Treatment of KPTI</h2>
@@ -236,7 +236,7 @@ p.spoiler {
 <h2 id="KASLRの回避">Avoiding KASLR</h2>
 <p>I have disabled KASLR so far, but is it possible to exploit it if KASLR is enabled?</p>
 <h3 id="KASLRのエントロピー">KASLR entropy</h3>
-<p>Before we get into the main topic, how is KASLR implemented in the first place?<br/>Kernel address randomization is done at the page table level,<code>kaslr.c</code> of<a href="https://elixir.bootlin.com/linux/v5.10.7/source/arch/x86/mm/kaslr.c#L64" rel="noopener" target="_blank"><code>kernel_randomize_memory</code></a>Implemented with functions.<br/>The kernel reserves 1GB of address space from 0xffffffff80000000 to 0xffffffffc0000000. Therefore, even if KASLR is enabled, only 0x3f0 base addresses from 0x810 to 0xc00 are generated.TODO: Exhibition required</p>
+<p>Before we get into the main topic, how is KASLR implemented in the first place?<br/>Kernel address randomization is performed at the page-table level using the <code>kernel_randomize_memory</code> function in <code>kaslr.c</code>.<br/>The kernel reserves 1GB of address space from <code>0xffffffff80000000</code> to <code>0xffffffffc0000000</code>. Therefore, even if KASLR is enabled, only <code>0x3f0</code> possible base addresses in the range from <code>0x810</code> to <code>0xc00</code> are generated.</p>
 <center>
 <img alt="KASLR range" src="img/kaslr_entropy.png" style="width:300px;"/>
 </center>
