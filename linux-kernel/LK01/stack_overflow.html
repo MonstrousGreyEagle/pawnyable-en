@@ -141,7 +141,7 @@ p.spoiler {
 <img alt="Get address from /proc/kallsyms" src="img/check_kallsyms.png" style="width:380px;"/>
 </center>
 <p>Now, all that's left to do is use the vulnerability.<code>escalate_privilege</code> Just call the function and you're done. Appropriately <code>escalate_privilege</code> You can write a large number of pointers, but you will need to do a ROP later, so be sure to know the exact offset of the return address.<br/>You can calculate the offset by reading the kernel module with IDA, but let's use gdb to check the part where the vulnerability is triggered.</p>
-<p><code>module_write</code> inside <code>_copy_from_user</code> If you look at the part where is called using IDA etc., the address is 0x190.<code>/proc/modules</code> Let's add the base address obtained from and call write with a breakpoint attached.<br/>The 0x400 destination from the write destination RDI is as follows.</p>
+<p>In IDA, the call to <code>_copy_from_user</code> inside <code>module_write</code> is at offset 0x190. Add the module base address obtained from <code>/proc/modules</code>, then call <code>write</code> with a breakpoint at that address.<br/>The destination of the 0x400-byte write, held in RDI, is shown below.</p>
 <center>
 <img alt="Write destination with _copy_from_user" src="img/gdb_debug_copy.png" style="width:580px;"/>
 </center>
@@ -156,7 +156,7 @@ p.spoiler {
 <p>Therefore, it seems possible to control RIP after inserting 0x408 bytes of garbage data.<br/>So, I tried changing the exploit as follows.</p>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br/><span class="line">2</span><br/><span class="line">3</span><br/><span class="line">4</span><br/></pre></td><td class="code"><pre><span class="line"><span class="type">char</span> buf[<span class="number">0x410</span>];</span><br/><span class="line"><span class="built_in">memset</span>(buf, <span class="string">'A'</span>, <span class="number">0x410</span>);</span><br/><span class="line">*(<span class="type">unsigned</span> <span class="type">long</span>*)&amp;buf[<span class="number">0x408</span>] = (<span class="type">unsigned</span> <span class="type">long</span>)&amp;escalate_privilege;</span><br/><span class="line">write(fd, buf, <span class="number">0x410</span>);</span><br/></pre></td></tr></table></figure>
 <p>The final exploit is available <a href="exploit/ret2usr.c">here</a>.</p>
-<p><code>module_write</code> When I try to stop it with the ret command,<code>escalate_privilege</code> You can see that we have reached .</p>
+<p>When execution is stopped at the <code>ret</code> in <code>module_write</code>, you can see that control has reached <code>escalate_privilege</code>.</p>
 <center>
 <img alt="Call escalate_privilege with RIP control" src="img/gdb_escalate_privilege.png" style="width:520px;"/>
 </center>
