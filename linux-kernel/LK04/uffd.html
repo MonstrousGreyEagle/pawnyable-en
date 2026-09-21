@@ -154,7 +154,7 @@ p.spoiler {
 <li><code>blob_get</code> of <code>copy_to_user</code></li>
 <li><code>blob_set</code> of <code>copy_from_user</code></li>
 </ul>
-<p>Since the purpose is use-after-free, data can be saved while processing is stopped using a function like the one above.<code>blob_del</code> You can delete it with .<code>blob_get</code> If you delete it inside, UAF Read,<code>blob_set</code> UAF Write can be achieved by deleting it inside.<code>tty_struct</code> Let's read and write Use-after-Free.<br/>The flow is shown in the diagram below.</p>
+<p>Because the goal is to trigger a use-after-free, we can pause processing with a handler like the one above and free the object using <code>blob_del</code>. If we delete the object from inside <code>blob_get</code>, we obtain a UAF read; deleting it from inside <code>blob_set</code> gives a UAF write. Let us use a <code>tty_struct</code> to demonstrate both cases.<br/>The overall flow is shown below.</p>
 <center>
 <img alt="Use-after-Free by userfaultfd" src="img/uffd_uafr.png" style="width:720px;"/>
 </center>

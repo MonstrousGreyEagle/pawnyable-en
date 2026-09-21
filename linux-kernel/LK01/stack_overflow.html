@@ -226,7 +226,7 @@ p.spoiler {
 <center>
 <img alt="trampoline in swapgs_restore_regs_and_return_to_usermode" src="img/kpti_trampoline.png" style="width:480px;"/>
 </center>
-<p>In this case before swapgs <code>pop rax</code> and <code>pop rdi</code> There is.</p>
+<p>In this case, the sequence before <code>swapgs</code> contains <code>pop rax</code> and <code>pop rdi</code>.</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br/><span class="line">2</span><br/><span class="line">3</span><br/></pre></td><td class="code"><pre><span class="line">0xffffffff81800e89:  pop    rax</span><br/><span class="line">0xffffffff81800e8a:  pop    rdi</span><br/><span class="line">0xffffffff81800e8b:  swapgs</span><br/></pre></td></tr></table></figure>
 <p>In the previous diagram, <code>push [rdi]; push rax</code> restores the previous values to RAX and RDI. At this point, after <code>swapgs</code>, the stack is positioned at the beginning of the frame.</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br/><span class="line">2</span><br/><span class="line">3</span><br/><span class="line">4</span><br/><span class="line">5</span><br/></pre></td><td class="code"><pre><span class="line">0xffffffff81800e32:  push   QWORD PTR [rdi+0x30]</span><br/><span class="line">0xffffffff81800e35:  push   QWORD PTR [rdi+0x28]</span><br/><span class="line">0xffffffff81800e38:  push   QWORD PTR [rdi+0x20]</span><br/><span class="line">0xffffffff81800e3b:  push   QWORD PTR [rdi+0x18]</span><br/><span class="line">0xffffffff81800e3e:  push   QWORD PTR [rdi+0x10]</span><br/></pre></td></tr></table></figure>

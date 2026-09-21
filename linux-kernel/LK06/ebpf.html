@@ -235,7 +235,7 @@ p.spoiler {
 <p>The base helper function handles BPF maps.<code>map_lookup_elem</code> or <code>map_update_elem</code> and so on. Learn how to use each function while actually writing a BPF program.</p>
 <h2 id="BPFの利用">Use of BPF</h2>
 <p>Now, let's actually use BPF (eBPF).</p>
-<p>There is no problem when testing on the LK06 machine, but if you want to test on the machine you are using, first check whether BPF can be used by general users. At the time of writing this article, BPF is no longer available to general users to prevent side-channel attacks such as Specter. Is it effective?<code>/proc/sys/kernel/unprivileged_bpf_disabled</code> You can check from.</p>
+<p>Testing on the LK06 machine requires no extra setup. On another machine, first check whether unprivileged users may use BPF. To prevent side-channel attacks such as Spectre, many systems disable it for ordinary users. Check <code>/proc/sys/kernel/unprivileged_bpf_disabled</code> to see whether it is enabled.</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br/><span class="line">2</span><br/></pre></td><td class="code"><pre><span class="line">$ cat /proc/sys/kernel/unprivileged_bpf_disabled</span><br/><span class="line">2</span><br/></pre></td></tr></table></figure>
 <p>If this value is 0 <code>CAP_SYS_ADMIN</code> BPF can be used even by users who do not have it. If it is 1 or 2, temporarily change it to 0.</p>
 <h3 id="BPFプログラムの記述">Writing a BPF program</h3>
