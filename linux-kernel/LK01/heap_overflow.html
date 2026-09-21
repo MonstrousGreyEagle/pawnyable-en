@@ -99,30 +99,30 @@ p.spoiler {
 </div>
 </div>
 <div class="post-content">
-<p>In the previous chapter, we exploited the Holstein module's Stack Overflow to escalate privileges. Holstein module developers quickly fixed the vulnerability and released Holstein v2. In this chapter, we will exploit the improved Holstein module v2.</p>
+<p>In the previous chapter, we exploited a stack overflow in the Holstein module to escalate privileges. The developers quickly fixed the vulnerability and released Holstein v2. In this chapter, we will exploit the improved module.</p>
 <h2 id="パッチの解析と脆弱性の調査">Patch analysis and vulnerability research</h2>
-<p>First<a href="distfiles/LK01-2.tar.gz">Holstein v2</a>Please download.<br/>When you check the source code in the src directory, the difference from the previous time is <code>module_read</code> and <code>module_write</code> You can see that there are only two places.</p>
+<p>First, download <a href="distfiles/LK01-2.tar.gz">Holstein v2</a>.<br/>Compared with the previous version, the source code has only two changes: <code>module_read</code> and <code>module_write</code>.</p>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br/><span class="line">2</span><br/><span class="line">3</span><br/><span class="line">4</span><br/><span class="line">5</span><br/><span class="line">6</span><br/><span class="line">7</span><br/><span class="line">8</span><br/><span class="line">9</span><br/><span class="line">10</span><br/><span class="line">11</span><br/><span class="line">12</span><br/><span class="line">13</span><br/><span class="line">14</span><br/><span class="line">15</span><br/><span class="line">16</span><br/><span class="line">17</span><br/><span class="line">18</span><br/><span class="line">19</span><br/><span class="line">20</span><br/><span class="line">21</span><br/><span class="line">22</span><br/><span class="line">23</span><br/><span class="line">24</span><br/><span class="line">25</span><br/><span class="line">26</span><br/><span class="line">27</span><br/></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">ssize_t</span> <span class="title function_">module_read</span><span class="params">(<span class="keyword">struct</span> file *file,</span></span><br/><span class="line"><span class="params">                           <span class="type">char</span> __user *buf, <span class="type">size_t</span> count,</span></span><br/><span class="line"><span class="params">                           <span class="type">loff_t</span> *f_pos)</span></span><br/><span class="line">{</span><br/><span class="line">  printk(KERN_INFO <span class="string">"module_read called\n"</span>);</span><br/><span class="line"></span><br/><span class="line">  <span class="keyword">if</span> (copy_to_user(buf, g_buf, count)) {</span><br/><span class="line">    printk(KERN_INFO <span class="string">"copy_to_user failed\n"</span>);</span><br/><span class="line">    <span class="keyword">return</span> -EINVAL;</span><br/><span class="line">  }</span><br/><span class="line"></span><br/><span class="line">  <span class="keyword">return</span> count;</span><br/><span class="line">}</span><br/><span class="line"></span><br/><span class="line"><span class="type">static</span> <span class="type">ssize_t</span> <span class="title function_">module_write</span><span class="params">(<span class="keyword">struct</span> file *file,</span></span><br/><span class="line"><span class="params">                            <span class="type">const</span> <span class="type">char</span> __user *buf, <span class="type">size_t</span> count,</span></span><br/><span class="line"><span class="params">                            <span class="type">loff_t</span> *f_pos)</span></span><br/><span class="line">{</span><br/><span class="line">  printk(KERN_INFO <span class="string">"module_write called\n"</span>);</span><br/><span class="line"></span><br/><span class="line">  <span class="keyword">if</span> (copy_from_user(g_buf, buf, count)) {</span><br/><span class="line">    printk(KERN_INFO <span class="string">"copy_from_user failed\n"</span>);</span><br/><span class="line">    <span class="keyword">return</span> -EINVAL;</span><br/><span class="line">  }</span><br/><span class="line"></span><br/><span class="line">  <span class="keyword">return</span> count;</span><br/><span class="line">}</span><br/></pre></td></tr></table></figure>
-<p>Instead of no longer using stack variables,<code>g_buf</code> You can now read and write values ​​directly. Of course, as always, there is no size check, so overflow exists. This vulnerability is a heap overflow.<br/>
+<p>Stack variables are no longer used; instead, the value of <code>g_buf</code> can be read and written directly. As before, there is no size check, so an overflow remains possible. This time, it is a heap overflow.<br/>
 <code>g_buf</code> teeth <code>module_open</code> was secured.</p>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br/></pre></td><td class="code"><pre><span class="line">g_buf = kmalloc(BUFFER_SIZE, GFP_KERNEL);</span><br/></pre></td></tr></table></figure>
 <p><code>BUFFER_SIZE</code> is 0x400. Let's see what happens if we write a value higher than that.</p>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br/><span class="line">2</span><br/><span class="line">3</span><br/><span class="line">4</span><br/><span class="line">5</span><br/><span class="line">6</span><br/><span class="line">7</span><br/><span class="line">8</span><br/><span class="line">9</span><br/><span class="line">10</span><br/><span class="line">11</span><br/><span class="line">12</span><br/></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span> {</span><br/><span class="line">  <span class="type">int</span> fd = open(<span class="string">"/dev/holstein"</span>, O_RDWR);</span><br/><span class="line">  <span class="keyword">if</span> (fd == <span class="number">-1</span>)</span><br/><span class="line">    fatal(<span class="string">"/dev/holstein"</span>);</span><br/><span class="line"></span><br/><span class="line">  <span class="type">char</span> buf[<span class="number">0x500</span>];</span><br/><span class="line">  <span class="built_in">memset</span>(buf, <span class="string">'A'</span>, <span class="number">0x500</span>);</span><br/><span class="line">  write(fd, buf, <span class="number">0x500</span>);</span><br/><span class="line"></span><br/><span class="line">  close(fd);</span><br/><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br/><span class="line">}</span><br/></pre></td></tr></table></figure>
-<p>Even if I actually run the program, I don't think anything will happen as shown below.</p>
+<p>Even when you run the program, nothing may happen, as shown below.</p>
 <center>
 <img alt="Does not crash even on heap overflow" src="img/hbof_nothing.png" style="width:320px;"/>
 </center>
-<p>First of all, how does the Linux Kernel heap work?</p>
+<p>First, how does the Linux kernel heap work?</p>
 <h2 id="スラブアロケータ">slab allocator</h2>
 <p>In the kernel, as in user space, you may want to dynamically allocate an area smaller than the page size. The simplest allocator is to allocate in page size units like mmap, but it creates a lot of unnecessary space and wastes memory resources.<br/>Similar to malloc in user space, kmalloc is also available in kernel space. This uses an allocator installed in the kernel, but mainly SLAB, SLUB, or SLOB is used. The three types are not completely independent and have some common parts in terms of implementation. These three are collectively called the slab allocator. It's confusing because the notation is the difference between Slab and SLAB.</p>
-<p>From now on, I will explain the implementation of each allocator, but I will only focus on the important parts for exploitation. As with user-space memory allocators, the key points of exploitation are:</p>
+<p>We will explain each allocator’s implementation, focusing only on the parts important for exploitation. As with user-space allocators, the key points are:</p>
 <ul>
 <li>Where chunks are cut from depending on the size you reserve</li>
 <li>How freed objects are managed and reused on subsequent pins</li>
 </ul>
 <p>Let's look at the implementation of each allocator, focusing on these two points.</p>
 <h3 id="SLABアロケータ">SLAB allocator</h3>
-<p>The SLAB allocator is historically the oldest type of allocator. Mainly used in Solaris etc.<br/>The main implementation is<a href="https://elixir.bootlin.com/linux/v5.15/source/mm/slab.c" rel="noopener" target="_blank">/mm/slab.c</a>is defined in</p>
+<p>The SLAB allocator is historically the oldest of the three. It was mainly used in systems such as Solaris.<br/>Its main implementation is defined in <a href="https://elixir.bootlin.com/linux/v5.15/source/mm/slab.c" rel="noopener" target="_blank"><code>mm/slab.c</code></a>.</p>
 <p>SLAB has the following characteristics:</p>
 <ul>
 <li><strong>How to use page frames according to size</strong><br/>Unlike libc's memory allocator, different pages are allocated depending on the size band. Therefore, there is no size information before or after the chunk.</li>
@@ -133,13 +133,13 @@ p.spoiler {
 <center>
 <img alt="SLAB allocator diagram" src="img/slab_allocator.png" style="width:640px;"/>
 </center>
-<p>Note that there are actually several cache entries, and the pointers to the freed areas listed there are used with priority.<br/>others,<code>__kmem_cache_create</code> The following functions are available depending on the flag when generating the cache.</p>
+<p>In practice, there are several cache entries, and pointers to freed areas recorded there are used first.<br/>Depending on the flags passed when creating the cache, functions such as <code>__kmem_cache_create</code> are also available.</p>
 <ul>
 <li><code>SLAB_POISON</code>: The freed area is filled with 0xA5.</li>
 <li><code>SLAB_RED_ZONE</code>: An area called redzone is added after the object, and it is detected when it is rewritten due to Heap Overflow etc.</li>
 </ul>
 <h3 id="SLUBアロケータ">SLUB allocator</h3>
-<p>The SLUB allocator is currently the default allocator and is intended for large systems. It is designed to be as fast as possible.<br/>The main implementation is<a href="https://elixir.bootlin.com/linux/v5.15/source/mm/slub.c" rel="noopener" target="_blank">/mm/slub.c</a>is defined in</p>
+<p>The SLUB allocator is currently the default allocator and is intended for large systems. It is designed to be as fast as possible.<br/>Its main implementation is defined in <a href="https://elixir.bootlin.com/linux/v5.15/source/mm/slub.c" rel="noopener" target="_blank"><code>mm/slub.c</code></a>.</p>
 <p>SLUB has the following characteristics:</p>
 <ul>
 <li><strong>How to use page frames according to size</strong><br/>Similar to SLAB, the page frame used changes depending on the size band. For example, a dedicated area is used such as kmalloc-128 for 100 bytes and kmalloc-256 for 200 bytes. Unlike SLAB, there is no metadata (such as free space index) at the beginning of the page frame. The pointer to the beginning of the freelist is written in the page frame descriptor.</li>
@@ -150,7 +150,7 @@ p.spoiler {
 <center>
 <img alt="SLUB allocator diagram" src="img/slub_allocator.png" style="width:680px;"/>
 </center>
-<p>In SLUB, when starting the kernel <code>slub_debug</code> You can enable debugging functions by giving a character to the parameter.</p>
+<p>With SLUB, you can enable debugging features by assigning letters to the <code>slub_debug</code> kernel boot parameter.</p>
 <ul>
 <li>F: Enable sanity check.</li>
 <li>P: Fill freed space with a specific bit string.</li>
