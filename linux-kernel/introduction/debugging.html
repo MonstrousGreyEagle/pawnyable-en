@@ -116,26 +116,26 @@ p.spoiler {
 <img alt="Start a shell with root privileges" src="img/rooted.png" style="width:340px;"/>
 </center>
 <h2 id="qemuへのアタッチ">attaching to qemu</h2>
-<p>qemu has a function for debugging with gdb. to qemu <code>-gdb</code> You can pass an option to listen by specifying the protocol, host, and port number.<code>run.sh</code> If you edit and add the following option, for example, you can listen for gdb on TCP port 12345 on the local host.</p>
+<p>QEMU supports debugging with GDB. You can pass the <code>-gdb</code> option to specify the protocol, host, and port on which QEMU should listen. For example, edit <code>run.sh</code> and add the following option to make QEMU listen for GDB connections on TCP port 12345 on the local host.</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br/></pre></td><td class="code"><pre><span class="line">-gdb tcp::12345</span><br/></pre></td></tr></table></figure>
 <p>In future exercises, we will use port 12345 for debugging without prior notice, but feel free to use any number you like.</p>
-<p>To attach with gdb <code>target</code> Set the target with the command.</p>
+<p>Attach GDB by setting the target with the following command.</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br/></pre></td><td class="code"><pre><span class="line">pwndbg&gt; target remote localhost:12345</span><br/></pre></td></tr></table></figure>
-<p>If the connection is now completed, it is a success. You can then use regular gdb commands to read and write registers and memory, set breakpoints, etc. The memory address will be the "virtual address in the context of the breakpoint." In other words, you can simply set breakpoints at familiar addresses used by kernel drivers and user space programs.</p>
-<p>This time, the target is x86-64. If your gdb does not recognize the architecture you are debugging by default, you can set the architecture as follows. (Normally it will be recognized automatically.)</p>
+<p>Once the connection succeeds, you can use standard GDB commands to read and write registers and memory, set breakpoints, and so on. Addresses are interpreted as virtual addresses in the context of the breakpoint, so you can set breakpoints at the familiar addresses used by kernel drivers and user-space programs.</p>
+<p>This example targets x86-64. If GDB does not recognize the architecture automatically, set it as follows. (Normally, it will be detected automatically.)</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br/></pre></td><td class="code"><pre><span class="line">pwndbg&gt; set arch i386:x86-64:intel</span><br/></pre></td></tr></table></figure>
 <h2 id="カーネルのデバック">Kernel Debugging</h2>
-<p><code>/proc/kallsyms</code> Through procfs, you can see a list of addresses and symbols defined in the Linux kernel.<a href="security.html#kadr-kernel-address-display-restriction">KADR section in next chapter</a>However, as I will explain, the kernel address may not be visible even with root privileges due to security mechanisms.<br/>
-<a href="#root%E6%A8%A9%E9%99%90%E3%81%AE%E5%8F%96%E5%BE%97">getting root privileges section</a>We've already done this in, but don't forget to comment out the following lines in the initialization script: Otherwise, you won't be able to see the kernel space pointer.</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br/><span class="line">2</span><br/></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> 2 &gt; /proc/sys/kernel/kptr_restrict     <span class="comment"># Before change</span></span><br/><span class="line"><span class="comment"># echo2 &gt;/proc/sys/kernel/kptr_restrict # After the change</span></span><br/></pre></td></tr></table></figure>
-<p>Now, actually <code>kallsyms</code> Let's take a look. Since the amount is huge, let's look at only the beginning using head etc.</p>
+<p>Through procfs, <code>/proc/kallsyms</code> provides a list of addresses and symbols defined in the Linux kernel. See the <a href="security.html#kadr-kernel-address-display-restriction">KADR section in the next chapter</a> for details. However, security mechanisms may hide kernel addresses even from root users.<br/>
+We obtained root privileges in the <a href="#root%E6%A8%A9%E9%99%90%E3%81%AE%E5%8F%96%E5%BE%97">previous section</a>, but do not forget to comment out the following line in the initialization script. Otherwise, kernel-space pointers will remain hidden.</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br/><span class="line">2</span><br/></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> 2 &gt; /proc/sys/kernel/kptr_restrict     <span class="comment"># Before change</span></span><br/><span class="line"><span class="comment"># echo 2 &gt; /proc/sys/kernel/kptr_restrict # After the change</span></span><br/></pre></td></tr></table></figure>
+<p>Now, let us look at <code>kallsyms</code>. The output is very large, so use <code>head</code> to display only the beginning.</p>
 <center>
 <img alt="Top of /proc/kallsyms" src="img/kallsyms_head.png" style="width:480px;"/>
 </center>
-<p>In this way, it is output in order of the address of the symbol, the section where the address is located, and the symbol name. Sections are represented as, for example, a text section for "T", a data section for "D", and capital letters represent globally exported symbols. The detailed specifications of these letters <code>man nm</code> You can check it here.<br/>For example, in the diagram above, 0xffffffff81000000 is <code>_stext</code> It can be seen that it is the address of the symbol. This corresponds to the base address where the kernel was loaded.</p>
-<p>Now, let's <code>commit_creds</code> Use grep to find the address of the function named . If it is found, it should hit 0xffffffff8106e390. Put a breakpoint on this function in gdb and continue.</p>
+<p>Each line contains the symbol address, the section type, and the symbol name. For example, "T" denotes a text section and "D" denotes a data section; uppercase letters represent globally exported symbols. See <code>man nm</code> for the detailed meaning of these letters.<br/>In the example above, <code>0xffffffff81000000</code> is the address of <code>_stext</code>, which corresponds to the base address where the kernel was loaded.</p>
+<p>Next, use <code>grep</code> to find the address of <code>commit_creds</code>. In this environment, it should be <code>0xffffffff8106e390</code>. Set a breakpoint on this function in GDB and continue execution.</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br/><span class="line">2</span><br/></pre></td><td class="code"><pre><span class="line">pwndbg&gt; break *0xffffffff8106e390</span><br/><span class="line">pwndbg&gt; conti</span><br/></pre></td></tr></table></figure>
-<p>This function is actually called when a new process is created. If you hit the ls command in the shell, etc., the gdb should react at the breakpoint.</p>
+<p>This function is called when a new process is created. If you run a command such as <code>ls</code> in the shell, GDB should stop at the breakpoint.</p>
 <center>
 <img alt="How commit_creds stops due to breakpoint" src="img/commit_creds_bp.png" style="width:720px;"/>
 </center>
@@ -160,12 +160,12 @@ p.spoiler {
 <p>As discussed earlier, this module is exposed as <code>/dev/holstein</code>. Run <code>cat /dev/holstein</code> and confirm that execution stops at the <code>module_close</code> breakpoint.</p>
 <div class="balloon_l">
 <div class="faceicon"><img alt="Wolf-kun" src="../img/wolf_atamawaru.png"/></div>
-<p class="says">If you want the symbol information of the driver, use the add-symbol-file command to pass the driver in the first argument and the base address in the second argument to read the symbol information.You can use the function name to set a breakpoint.</p>
+<p class="says">To load the driver's symbols, use the <code>add-symbol-file</code> command with the driver path as the first argument and the base address as the second. You can then set breakpoints by function name.</p>
 </div>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br/></pre></td><td class="code"><pre><span class="line"># cat /dev/holstein</span><br/></pre></td></tr></table></figure>
-<p><code>stepi</code> PNG and .<code>nexti</code> commands are also available. In this way, the way of attaching the kernel space debugging is just different, and the commands and debugging methods that can be used are no different from the user space.</p>
+<p>The <code>stepi</code> and <code>nexti</code> commands are also available. Although attaching to a kernel-space process is different, the GDB commands and debugging techniques are otherwise the same as in user space.</p>
 <hr/>
-<div class="column" title="Example">In this chapter <code>commit_creds</code> I stopped the breakpoint and checked the memory area pointed to by the RDI register. Now let's check the same thing using gdb in a shell with user privileges (if you set uid to 1337 with cttyhack).<br/>Also, comparing the case with root authority (uid=0) and the case with general user authority (uid=1337 etc.),<code>commit_creds</code> Notice what difference there is in the data passed to the first argument of .</div>
+<div class="column" title="Example">In this chapter, we stopped at <code>commit_creds</code> and examined the memory area pointed to by the RDI register. Now, repeat the same check with GDB from a shell running as an ordinary user (for example, with uid 1337 set by <code>cttyhack</code>).<br/>Compare the data passed as the first argument to <code>commit_creds</code> when running as root (uid 0) and as an ordinary user (such as uid 1337).</div>
 </div>
 <div style="margin-top: 1em">
 <div class="h-line-primary"></div>
