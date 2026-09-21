@@ -169,7 +169,7 @@ p.spoiler {
 </center>
 <p>Looking at the BUG item, it says "kernel NULL pointer dereference, address: 0000000000000008", which indicates that the crash occurred while trying to refer to a NULL pointer, as analyzed.<br/>NULL pointer dereferences occur frequently in user-space programs, but this bug is usually not exploitable. So, how can we use this bug to escalate privileges?</p>
 <h2 id="仮想メモリとmmap-min-addr">Virtual memory and mmap_min_addr</h2>
-<p><a href="https://www.kernel.org/doc/Documentation/x86/x86_64/mm.txt" rel="noopener" target="_blank">Linux specifications</a>As such, virtual memory has different uses depending on the address. for example <code>0000000000000000</code> from <code>00007fffffffffff</code> You can use the user space freely until then. Also,<code>ffffffff80000000</code> from <code>ffffffff9fffffff</code> This is the kernel data area and is mapped to physical address 0.</p>
+<p>According to the <a href="https://www.kernel.org/doc/Documentation/x86/x86_64/mm.txt" rel="noopener" target="_blank">Linux documentation</a>, virtual memory has different uses depending on the address. For example, user space can be used freely from <code>0000000000000000</code> through <code>00007fffffffffff</code>. The range from <code>ffffffff80000000</code> through <code>ffffffff9fffffff</code> is the kernel area and is mapped to physical address 0.</p>
 <div class="balloon_l">
 <div class="faceicon"><img alt="Wolf-kun" src="../img/wolf_normal.png"/></div>
 <p class="says">On Linux, 48-bit addresses are signed extended to 64 bits. Therefore, addresses from 0x800000000000 to 0xffff7ffffffffffff are invalid addresses and are called non-canonical.</p>
@@ -192,7 +192,7 @@ p.spoiler {
 <center>
 <img alt="Creating AAR/AAW primitives" src="img/angus_aaraaw.png" style="width:280px;"/>
 </center>
-<p>All you have to do is find the kernel base address,<code>cred</code> Look for the structure or try escalating privileges using free methods. The sample exploit code is<a href="exploit/angus_exploit.c">here</a>It can be downloaded from.</p>
+<p>All that remains is to find the kernel base address, locate the <code>cred</code> structure, or try one of the privilege-escalation techniques described earlier. The sample exploit code can be downloaded <a href="exploit/angus_exploit.c">here</a>.</p>
 <center>
 <img alt="Privilege escalation" src="img/angus_privesc.png" style="width:320px;"/>
 </center>
