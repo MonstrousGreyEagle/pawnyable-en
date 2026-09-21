@@ -143,13 +143,13 @@ p.spoiler {
 <center>
 <img alt="Checking memory in commit_creds" src="img/commit_creds_rdi.png" style="width:620px;"/>
 </center>
-<p>In this way, gdb commands can be used in kernel space just like in user space. You can also use extensions such as pwndbg, but please note that they will only work if they are extensions written for kernel space.<br/>the ability to debug the kernel<a href="https://github.com/bata24/gef" rel="noopener" target="_blank">Built-in debugger</a>and so on, so please use your favorite debugger.</p>
+<p>In this way, gdb commands work in kernel space just as they do in user space. Extensions such as pwndbg are also available, but they must support kernel debugging.<br/>The <a href="https://github.com/bata24/gef" rel="noopener" target="_blank">gef</a> debugger has built-in kernel-debugging support, so use whichever debugger you prefer.</p>
 <h2 id="ドライバのデバッグ">Driver debugging</h2>
 <p>Next, let us debug the kernel module.<br/>LK01 loads a module named <code>vuln</code>. You can view the loaded modules and their base addresses in <code>/proc/modules</code>.</p>
 <center>
 <img alt="Contents of/proc/moudles" src="img/modules.png" style="width:420px;"/>
 </center>
-<p>Okay, here's what we're looking at.<code>vuln</code> You can see that the module is loaded at 0xffffffffc0000000. The source code and binaries for this module are available in the distribution file.<code>src</code> exists in the directory. We will analyze the source code in detail in a separate chapter, but let's add a breakpoint to the functions in this module.<br/>IDA etc.<code>src/vuln.ko</code> When you open, you'll see some functions, such as <code>module_close</code> You can see that the relative address is 0x20f.</p>
+<p>The module <code>vuln</code> is loaded at 0xffffffffc0000000. Its source and binaries are in the <code>src</code> directory of the distribution file. We will analyze the source in detail later, but first let us set a breakpoint on one of its functions.<br/>Opening <code>src/vuln.ko</code> in IDA reveals functions such as <code>module_close</code>, whose relative address is 0x20f.</p>
 <center>
 <img alt="module_close function seen in IDA" src="img/module_close.png" style="width:360px;"/>
 </center>
@@ -157,7 +157,7 @@ p.spoiler {
 <center>
 <img alt="add a breakpoint to the module_close function in gdb" src="img/module_close_bp.png" style="width:520px;"/>
 </center>
-<p>We will look at this in more detail in the previous chapters, but this module <code>/dev/holstein</code> It is mapped to the file .<code>cat</code> If you use the command,<code>module_close</code>. Let's make sure we stop at the breakpoint.</p>
+<p>As discussed earlier, this module is exposed as <code>/dev/holstein</code>. Run <code>cat /dev/holstein</code> and confirm that execution stops at the <code>module_close</code> breakpoint.</p>
 <div class="balloon_l">
 <div class="faceicon"><img alt="Wolf-kun" src="../img/wolf_atamawaru.png"/></div>
 <p class="says">If you want the symbol information of the driver, use the add-symbol-file command to pass the driver in the first argument and the base address in the second argument to read the symbol information.You can use the function name to set a breakpoint.</p>
